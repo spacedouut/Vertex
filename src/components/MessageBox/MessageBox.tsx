@@ -1,64 +1,62 @@
+import { useState } from "react";
 import styles from "./MessageBox.module.css";
-
 
 interface ToolChipInterface {
     name: string;
 }
 
-function Tool({ name } : ToolChipInterface) {
-    return (
-        <div className={styles["tool-chip"]}>
-            {name}
-        </div>
-    );
+function Tool({ name }: ToolChipInterface) {
+    return <div className={styles["tool-chip"]}>{name}</div>;
 }
 
-function Tools({ tools }: { tools: object[] }) {
+function Tools({ tools }: { tools: ToolChipInterface[] }) {
     return (
         <div className={styles["tools-container"]}>
             <span className={styles["tools-label"]}>What tools can I use here?</span>
             <div className={styles["tools-list"]}>
-            {tools.map((tool, index) => (
-                <Tool name={tool.name} />
-            ))}
+                {tools.map((tool, index) => (
+                    <Tool key={index} name={tool.name} />
+                ))}
             </div>
         </div>
     );
 }
 
-function InputBox() {
+function InputBox({ onSend }: { onSend: (message: string) => void }) {
+    const [input, setInput] = useState("");
+
+    const handleSend = () => {
+        if (input.trim() === "") return;
+        onSend(input);
+        setInput(""); // Clear input field after sending
+    };
+
     return (
         <div className={styles["message-input-container"]}>
-            <textarea className={styles["message-input"]} placeholder="Type your message here..." />
-            <button className={styles["message-send"]}>Send</button>
+            <textarea
+                className={styles["message-input"]}
+                placeholder="Type your message here..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+            />
+            <button className={styles["message-send"]} onClick={handleSend}>
+                Send
+            </button>
         </div>
     );
 }
 
-export function MessageBox() {
+export function MessageBox({ onSend }: { onSend: (message: string) => void }) {
     const tools = [
         { name: "tool1" },
         { name: "tool2" },
         { name: "tool3" },
-        { name: "tool1" },
-        { name: "tool2" },
-        { name: "tool3" },
-        { name: "tool1" },
-        { name: "tool2" },
-        { name: "tool3" },
-        { name: "tool1" },
-        { name: "tool2" },
-        { name: "tool3" },
-        { name: "tool1" },
-        { name: "tool2" },
-        { name: "tool3" }
     ];
 
     return (
         <div className={styles["message-box-container"]}>
-            <InputBox />
+            <InputBox onSend={onSend} />
             <Tools tools={tools} />
         </div>
     );
 }
-

@@ -1,0 +1,29 @@
+.message-user {
+  padding: 0.5rem 1rem;
+  background-color: #606060;
+  border-radius: 25px;
+  align-self: flex-end;
+  word-wrap: break-word;
+  max-width: 75%;
+}
+
+.message-assistant {
+  padding: 0.5rem 1rem;
+  background-color: #353535;
+  border-radius: 25px;
+  align-self: flex-start;
+  word-wrap: break-word;
+  max-width: 75%;
+}
+
+.messages-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  overflow-y: auto;
+  width: 100%;
+  border-radius: 25px;
+  max-width: 850px;
+  margin-top: 1rem;
+}
