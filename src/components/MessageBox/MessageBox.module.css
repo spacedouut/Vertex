@@ -46,10 +46,16 @@
   background-color: #202020;
   padding: 1.5rem;
   border-radius: 30px;
-  padding-top: 10rem;
-  margin-top: -9rem;
+  padding-top: 5rem;
+  margin-top: -10rem;
 
   width: calc(100% - 7rem);
+
+  transition: margin-top 0.25s ease-in-out; /* Transition only margin-top */
+}
+
+.tools-container:hover {
+  margin-top: -5rem;
 }
 
 .tools-list {

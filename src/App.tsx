@@ -13,7 +13,7 @@ function App() {
 
   const modelManager = new ModelManager({
     provider: APIType.OpenAI,
-    key: import.meta.env.VITE_API_KEY as string || "",
+    key: (import.meta.env.VITE_API_KEY as string) || "",
     endpoint: "https://api.groq.com/openai/v1/",
   });
 
@@ -22,30 +22,23 @@ function App() {
       const newMessages = [...messages, { content: message, role: "user" }];
       setMessages(newMessages);
 
-      // In app.tsx, inside the try block:
       try {
-        const response = await modelManager.generate(
+        const stream = await modelManager.stream(
           newMessages,
           "deepseek-r1-distill-llama-70b"
         );
-        console.log(response); // Inspect the response in the console.
-        if (
-          typeof response === "object" &&
-          response !== null &&
-          "text" in response
-        ) {
-          setAiResponse(response.text);
+        let response = ""
+        for await (const chunk of stream) {
+          // Process the chunk
+          setAiResponse((prev) => prev + chunk);
+          response += chunk;
           setMessages((prevMessages) => [
-            ...prevMessages,
-            { content: response.text, role: "assistant" },
+            ...newMessages,
+            { content: response, role: "assistant" },
           ]);
-        } else {
-          // Handle the case where the response isn't an object or doesn't have a 'text' property
-          console.error("Unexpected response format:", response);
-          setAiResponse("Failed to generate response.");
         }
       } catch (error) {
-        console.error("Error generating AI response:", error);
+        console.error("Streaming error:", error);
         setAiResponse("Failed to generate response.");
       }
     },

@@ -20,7 +20,8 @@
     "@ai-sdk/togetherai": "^0.1.9",
     "ai": "^4.1.28",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-markdown": "^9.0.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",

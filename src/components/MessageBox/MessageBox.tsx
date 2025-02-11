@@ -31,6 +31,15 @@ function InputBox({ onSend }: { onSend: (message: string) => void }) {
         setInput(""); // Clear input field after sending
     };
 
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        // Prevent default behavior to avoid adding new lines
+        // Check if Enter key was pressed without Shift
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    };
+
     return (
         <div className={styles["message-input-container"]}>
             <textarea
@@ -38,6 +47,8 @@ function InputBox({ onSend }: { onSend: (message: string) => void }) {
                 placeholder="Type your message here..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                rows={1} // This will make the textarea height adjust to content
             />
             <button className={styles["message-send"]} onClick={handleSend}>
                 Send

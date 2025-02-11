@@ -96,7 +96,9 @@ export class ModelManager {
       ...options,
     };
 
-    return streamText(streamParameters);
+    const { textStream } = streamText(streamParameters)
+  
+    return textStream;
   }
 
   async generate(messages: any[], model: string, options?: any) {

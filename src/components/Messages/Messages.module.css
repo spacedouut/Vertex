@@ -22,8 +22,21 @@
   gap: 1rem;
   padding: 1rem;
   overflow-y: auto;
-  width: 100%;
+  width: calc(100% - 5rem);
   border-radius: 25px;
   max-width: 850px;
   margin-top: 1rem;
+  flex: 1;
+}
+
+.thought-button {
+  background-color: transparent;
+  border: none;
+  color: #aaaaaa;
+  padding: none;
+}
+
+.thought-content {
+  font-size: 0.85rem;
+  color: #aaaaaa
 }
