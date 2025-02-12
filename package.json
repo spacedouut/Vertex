@@ -19,9 +19,13 @@
     "@ai-sdk/openai": "^1.1.9",
     "@ai-sdk/togetherai": "^0.1.9",
     "ai": "^4.1.28",
+    "prism": "^1.0.0",
+    "prismjs": "^1.29.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-markdown": "^9.0.3"
+    "react-markdown": "^9.0.3",
+    "react-router-dom": "^7.1.5",
+    "uuid": "^11.0.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",

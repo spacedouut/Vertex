@@ -22,10 +22,17 @@ function App() {
       const newMessages = [...messages, { content: message, role: "user" }];
       setMessages(newMessages);
 
+      const options = {
+        max_tokens: 16384, // Limit the number of tokens in the generated text
+        temperature: 0.8, // Adjust the level of randomness in the text generation
+      };
+      
+
       try {
         const stream = await modelManager.stream(
           newMessages,
-          "deepseek-r1-distill-llama-70b"
+          "deepseek-r1-distill-llama-70b",
+          options
         );
         let response = ""
         for await (const chunk of stream) {
@@ -39,7 +46,10 @@ function App() {
         }
       } catch (error) {
         console.error("Streaming error:", error);
-        setAiResponse("Failed to generate response.");
+        setMessages((prevMessages) => [
+          ...newMessages,
+          { content: `Hey! Something broke internally; This is just a fake message. The error was: ${error}`, role: "assistant" },
+        ]);
       }
     },
     [messages, modelManager]

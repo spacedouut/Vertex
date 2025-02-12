@@ -7,3 +7,9 @@
 .greeting-user {
     font-weight: normal;
 }
+
+@media (prefers-color-scheme: light) {
+    .greeting-text {
+        color: black;
+    }
+}
