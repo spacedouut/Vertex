@@ -24,7 +24,7 @@ function ChatWrapper() {
   const modelManager = new ModelManager({
     provider: APIType.OpenAI,
     key: (import.meta.env.VITE_API_KEY as string) || "",
-    endpoint: "https://api.groq.com/openai/v1",
+    endpoint: "https://openrouter.ai/api/v1",
   });
 
   useEffect(() => {
@@ -69,7 +69,7 @@ function ChatWrapper() {
 
       const stream = await modelManager.stream(
         messagesRef.current,
-        "deepseek-r1-distill-llama-70b",
+        "google/gemini-2.0-flash-lite-preview-02-05:free",
         {
           max_tokens: 16384,
           temperature: 0.8,
