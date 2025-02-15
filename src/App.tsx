@@ -117,13 +117,14 @@ function ChatWrapper() {
       };
   
       setMessages((prev) => [...prev, responseMessage]);
-      messagesRef.current = [...messagesRef.current, responseMessage];
   
       for await (const chunk of stream) {
+        console.log(chunk)
         responseMessage.content += chunk;
-        setMessages([...messagesRef.current]);
+        setMessages([...messagesRef.current, responseMessage]);
       }
-  
+      messagesRef.current = [...messagesRef.current, responseMessage];
+
       await db.messages.add(responseMessage);
 
     } catch (error) {
