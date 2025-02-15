@@ -25,3 +25,15 @@ dist-ssr
 
 # Should be obvious...
 .env
+
+.vite/
+.nuxt/
+.output/
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+# System Files
+Thumbs.db
+# IDE
+.cache/

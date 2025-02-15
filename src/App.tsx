@@ -1,131 +1,186 @@
+// App.tsx
 import { useState, useEffect, useRef } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
-  useNavigate,
   useParams,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
+import "./App.css"
 
-import { NewChat } from "./pages/NewChat/NewChat";
-import { Chat } from "./pages/Chat/Chat";
+import { NewChatPage } from "./pages/NewChat/NewChat";
+import { ChatPage } from "./pages/Chat/Chat";
 import { ModelManager, APIType } from "./utils/ModelManager";
+import { db, Message, Chat } from "./utils/Dexie";
+import { Sidebar } from "./components/Sidebar/Sidebar";
 
 function ChatWrapper() {
   const { uuid } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<{ content: string; role: string }[]>([]);
-  const messagesRef = useRef(messages);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const messagesRef = useRef<Message[]>(messages);
   const initialLoadRef = useRef(true);
 
-  const modelManager = new ModelManager({
-    provider: APIType.OpenAI,
-    key: (import.meta.env.VITE_API_KEY as string) || "",
-    endpoint: "https://openrouter.ai/api/v1",
-  });
-
   useEffect(() => {
-    const loadMessages = async () => {
+    const loadChats = async () => {
+      setChats(await db.chats.toArray());
+    };
+
+    const loadChatAndMessages = async () => {
       if (!uuid) return;
 
-      // Load messages from localStorage
-      const storedMessages = JSON.parse(localStorage.getItem(`chat_${uuid}`) || "[]");
-      
-      if (storedMessages?.length > 0) {
+      try {
+        const chat = await db.chats.get({ uuid });
+        if (!chat) {
+          console.error("Chat not found!");
+          return;
+        }
+
+        const storedMessages = await db.messages
+          .where("chatId")
+          .equals(chat.id!)
+          .sortBy("timestamp");
+
         setMessages(storedMessages);
         messagesRef.current = storedMessages;
 
-        // Check if this is a new chat that needs an initial response
-        const isNewChat = location.state?.initialMessages !== undefined;
-        const hasOnlyUserMessage = 
-          storedMessages.length === 1 && 
-          storedMessages[0].role === "user";
-
-        if (initialLoadRef.current && isNewChat && hasOnlyUserMessage) {
+        if (initialLoadRef.current && location.state?.initialMessages) {
           initialLoadRef.current = false;
-          await handleSendMessage(storedMessages[0].content, true);
+          if (
+            storedMessages.length === 1 &&
+            storedMessages[0].role === "user"
+          ) {
+            await handleSendMessage(storedMessages[0].content, true);
+          }
         }
+      } catch (error) {
+        console.error("Error loading chat and messages:", error);
       }
     };
 
-    loadMessages();
+    loadChats();
+    loadChatAndMessages();
   }, [uuid, location.state]);
 
   const handleSendMessage = async (message: string, isInitial: boolean = false) => {
     if (!uuid) return;
 
     try {
-      // Only update messages and local storage if it's not an initial message
+      let chat = await db.chats.get({ uuid });
+      if (!chat) {
+        const chatId = await db.chats.add({ uuid });
+        chat = await db.chats.get(chatId);
+      }
+
+      let newMessage: Message;
+
       if (!isInitial) {
-        const newMessage = { content: message, role: "user" };
+        newMessage = {
+          chatId: chat!.id!,
+          content: message,
+          role: "user",
+          timestamp: new Date(),
+        };
+
+        await db.messages.add(newMessage);
+
         const updatedMessages = [...messagesRef.current, newMessage];
         setMessages(updatedMessages);
         messagesRef.current = updatedMessages;
-        localStorage.setItem(`chat_${uuid}`, JSON.stringify(updatedMessages));
       }
+
+      const modelManager = new ModelManager({
+        provider: APIType.OpenAI,
+        key: (import.meta.env.VITE_API_KEY as string) || "",
+        endpoint: "https://openrouter.ai/api/v1",
+      });
 
       const stream = await modelManager.stream(
         messagesRef.current,
-        "google/gemini-2.0-flash-lite-preview-02-05:free",
+        "qwen/qwen-vl-plus:free",
         {
           max_tokens: 16384,
           temperature: 0.8,
         }
       );
 
-      let response = "";
-
+      let responseMessage: Message = {
+        chatId: chat!.id!,
+        content: "",
+        role: "assistant",
+        timestamp: new Date(),
+      };
+  
+      setMessages((prev) => [...prev, responseMessage]);
+      messagesRef.current = [...messagesRef.current, responseMessage];
+  
       for await (const chunk of stream) {
-        response += chunk;
-        const updatedMessages = [
-          ...messagesRef.current,
-          { content: response, role: "assistant" }
-        ];
-        setMessages(updatedMessages);
-        localStorage.setItem(`chat_${uuid}`, JSON.stringify(updatedMessages));
+        responseMessage.content += chunk;
+        setMessages([...messagesRef.current]);
       }
-
-      // Update the messages ref after streaming is complete
-      messagesRef.current = [
-        ...messagesRef.current,
-        { content: response, role: "assistant" }
-      ];
+  
+      await db.messages.add(responseMessage);
 
     } catch (error) {
       console.error("Streaming error:", error);
-      const errorMessage = { 
-        content: `Error: ${error}`, 
-        role: "assistant" 
-      };
-      const updatedMessages = [...messagesRef.current, errorMessage];
-      setMessages(updatedMessages);
-      messagesRef.current = updatedMessages;
-      localStorage.setItem(`chat_${uuid}`, JSON.stringify(updatedMessages));
     }
   };
 
-  return <Chat messages={messages} onSendMessage={handleSendMessage} />;
+  return (
+    <div className="chat-wrapper">
+      <Sidebar chats={chats} showGreeting={true} />
+      <ChatPage messages={messages} onSendMessage={handleSendMessage} />
+    </div>
+  );
 }
 
 function NewChatWrapper() {
   const navigate = useNavigate();
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
 
-  const handleSendMessage = (message: string) => {
+  useEffect(() => {
+    const loadChats = async () => {
+      setChats(await db.chats.toArray());
+    };
+
+    loadChats();
+  }, []);
+
+  const handleSendMessage = async (message: string) => {
     const newUuid = uuidv4();
-    const initialMessages = [{ content: message, role: "user" }];
 
-    // Save the first message immediately
-    localStorage.setItem(`chat_${newUuid}`, JSON.stringify(initialMessages));
+    const chatId = await db.chats.add({
+      uuid: newUuid,
+      name: "New Chat",
+    });
 
-    // Navigate to chat while passing the initial messages via state
-    navigate(`/chat/${newUuid}`, { state: { initialMessages } });
+    const initialMessage: Message = {
+      chatId,
+      content: message,
+      role: "user",
+      timestamp: new Date(),
+    };
+
+    await db.messages.add(initialMessage);
+    setMessages([initialMessage]);
+
+    navigate(`/chat/${newUuid}`, { state: { initialMessages: true } });
   };
 
-  return <NewChat onSendMessage={handleSendMessage} />;
+  return (
+    <div className="chat-wrapper">
+      <Sidebar chats={chats} showGreeting={true} />
+      <NewChatPage onSendMessage={handleSendMessage} />
+    </div>
+  );
 }
+
 
 function App() {
   return (

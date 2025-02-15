@@ -3,7 +3,7 @@ import { MessageBox } from "../../components/MessageBox/MessageBox";
 
 import styles from "./Chat.module.css";
 
-export function Chat({
+export function ChatPage({
     messages,
     onSendMessage,
 }: {

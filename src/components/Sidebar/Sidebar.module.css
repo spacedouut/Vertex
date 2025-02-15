@@ -1,0 +1,61 @@
+.sidebar {
+  width: 350px;
+  background-color: #303030;
+  padding: 20px;
+
+  top: 0;
+  left: 0;
+  overflow-y: auto;
+  z-index: 100; /* Ensure sidebar stays on top */
+  max-width: 300px;
+  padding: 2rem;
+  margin: 2.5rem 0rem;
+  border-radius: 0px 30px 30px 0px;
+
+  transform: translateX(0); /* Default: visible */
+}
+
+.sidebar.hidden {
+  transform: translateX(-100%); /* Hide sidebar */
+}
+
+.sidebar-title {
+    font-family: "Telegraf";
+    font-size: 1.5rem;
+}
+.sidebar-chat-item {
+    border-radius: 50px;
+    background-color: #505050;
+    padding: 0.90rem;
+}
+
+.sidebar-chat-list {
+     display: flex;
+     flex-direction: column;
+     gap: 0.5rem;
+     margin-top: 0.5rem;
+}
+
+.sidebar-newchat-button {
+    background-color: #404040;
+    color: white;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 25px;
+    cursor: pointer;
+    font-family: "Telegraf";
+    font-size: 1rem;
+    margin: 0.75rem 0rem;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    margin: 0;
+    padding: 1rem;
+    transform: translateX(-100%); /* Hide sidebar */
+  }
+}
