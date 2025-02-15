@@ -20,42 +20,43 @@
 }
 
 .sidebar-title {
-    font-family: "Telegraf";
-    font-size: 1.5rem;
+  font-family: "Telegraf";
+  font-size: 1.5rem;
 }
 .sidebar-chat-item {
-    border-radius: 50px;
-    background-color: #505050;
-    padding: 0.90rem;
+  border-radius: 50px;
+  background-color: #505050;
+  padding: 0.9rem;
 }
 
 .sidebar-chat-list {
-     display: flex;
-     flex-direction: column;
-     gap: 0.5rem;
-     margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .sidebar-newchat-button {
-    background-color: #404040;
-    color: white;
-    border: none;
-    padding: 0.75rem 1rem;
-    border-radius: 25px;
-    cursor: pointer;
-    font-family: "Telegraf";
-    font-size: 1rem;
-    margin: 0.75rem 0rem;
-    text-align: center;
+  background-color: #404040;
+  color: white;
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 25px;
+  cursor: pointer;
+  font-family: "Telegraf";
+  font-size: 1rem;
+  margin: 0.75rem 0rem;
+  text-align: center;
 }
 
-@media (max-width: 768px) {
+@media (prefers-color-scheme: light) {
   .sidebar {
-    width: 100%;
-    max-width: 100%;
-    border-radius: 0;
-    margin: 0;
-    padding: 1rem;
-    transform: translateX(-100%); /* Hide sidebar */
+    background-color: #e0e0e0;
+    color: black;
+  }
+
+  .sidebar-chat-item, .sidebar-newchat-button {
+    background-color: #d0d0d0;
+    color: black;
   }
 }
