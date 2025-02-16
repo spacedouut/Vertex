@@ -6,7 +6,6 @@ export interface Message {
   content: string;
   role: string;
   timestamp: Date;
-  //... other message-specific fields
 }
 
 export interface Chat {
@@ -16,7 +15,7 @@ export interface Chat {
   model?: string;
   temperature?: number;
   userId?: string; 
-  //... other chat metadata fields
+  timestamp?: Date;
 }
 
 export class ChatDatabase extends Dexie {
@@ -26,7 +25,7 @@ export class ChatDatabase extends Dexie {
   constructor() {
     super("ChatDatabase");
     this.version(2).stores({
-      chats: "++id, uuid",
+      chats: "++id, uuid, timestamp",
       messages: "++id, chatId, timestamp", 
     });
   }

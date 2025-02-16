@@ -1,4 +1,3 @@
-// App.tsx
 import { useState, useEffect, useRef } from "react";
 import {
   BrowserRouter as Router,
@@ -28,7 +27,12 @@ function ChatWrapper() {
 
   useEffect(() => {
     const loadChats = async () => {
-      setChats(await db.chats.toArray());
+      const allChats = await db.chats.toArray();
+      // Sort chats by timestamp in descending order
+      const sortedChats = allChats.sort((a, b) => 
+        (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
+      );
+      setChats(sortedChats);
     };
 
     const loadChatAndMessages = async () => {
@@ -73,9 +77,16 @@ function ChatWrapper() {
     try {
       let chat = await db.chats.get({ uuid });
       if (!chat) {
-        const chatId = await db.chats.add({ uuid });
+        const chatId = await db.chats.add({ 
+          uuid,
+          name: "New Chat",
+          timestamp: new Date()
+        });
         chat = await db.chats.get(chatId);
       }
+
+      // Update chat timestamp
+      await db.chats.update(chat!.id!, { timestamp: new Date() });
 
       let newMessage: Message;
 
@@ -108,7 +119,6 @@ function ChatWrapper() {
           temperature: 0.8,
         }
       );
-
       let responseMessage: Message = {
         chatId: chat!.id!,
         content: "",
@@ -119,13 +129,21 @@ function ChatWrapper() {
       setMessages((prev) => [...prev, responseMessage]);
   
       for await (const chunk of stream) {
-        console.log(chunk)
         responseMessage.content += chunk;
         setMessages([...messagesRef.current, responseMessage]);
       }
       messagesRef.current = [...messagesRef.current, responseMessage];
 
       await db.messages.add(responseMessage);
+      // Update chat timestamp after assistant response
+      await db.chats.update(chat!.id!, { timestamp: new Date() });
+
+      // Refresh chat list to show updated order
+      const allChats = await db.chats.toArray();
+      const sortedChats = allChats.sort((a, b) => 
+        (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
+      );
+      setChats(sortedChats);
 
     } catch (error) {
       console.error("Streaming error:", error);
@@ -147,7 +165,11 @@ function NewChatWrapper() {
 
   useEffect(() => {
     const loadChats = async () => {
-      setChats(await db.chats.toArray());
+      const allChats = await db.chats.toArray();
+      const sortedChats = allChats.sort((a, b) => 
+        (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
+      );
+      setChats(sortedChats);
     };
 
     loadChats();
@@ -159,6 +181,7 @@ function NewChatWrapper() {
     const chatId = await db.chats.add({
       uuid: newUuid,
       name: "New Chat",
+      timestamp: new Date()
     });
 
     const initialMessage: Message = {
@@ -181,7 +204,6 @@ function NewChatWrapper() {
     </div>
   );
 }
-
 
 function App() {
   return (
