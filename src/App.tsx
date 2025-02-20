@@ -329,7 +329,7 @@ function App() {
 
   return (
     <Router>
-      <Layout isSettingsOpen={isSettingsOpen} onOpenSettings={() => setIsSettingsOpen(true)}>
+      <Layout onOpenSettings={() => setIsSettingsOpen(true)}>
         <Routes>
           <Route path="/chat" element={<NewChatWrapper />} />
           <Route path="/chat/:uuid" element={<ChatWrapper />} />

@@ -1,5 +1,5 @@
 // Sidebar.tsx
-import React, { useState } from "react";
+import { useState } from "react";
 import styles from "./Sidebar.module.css";
 import { Greeting } from "../Greeting/Greeting";
 import { useNavigate } from "react-router-dom";

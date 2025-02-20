@@ -3,11 +3,10 @@ import styles from './Layout.module.css';
 
 interface LayoutProps {
   children: React.ReactNode;
-  isSettingsOpen: boolean;
   onOpenSettings: () => void;
 }
 
-export function Layout({ children, isSettingsOpen, onOpenSettings }: LayoutProps) {
+export function Layout({ children, onOpenSettings }: LayoutProps) {
   return (
     <div className={styles.layout}>
       <button 

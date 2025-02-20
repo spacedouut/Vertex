@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import styles from "./Messages.module.css";
 import ReactMarkdown from "react-markdown";
 import Prism from "prismjs";
