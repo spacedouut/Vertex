@@ -82,18 +82,18 @@
 
 @media (prefers-color-scheme: light) {
   .sidebar {
-    background-color: #e0e0e0;
+    background-color: #f0f0f0;
     color: black;
   }
 
   .sidebar-chat-item,
   .sidebar-newchat-button {
-    background-color: #d0d0d0;
+    background-color: #e0e0e0;
     color: black;
   }
 
   .sidebar-toggle {
-    background-color: #d0d0d0;
+    background-color: #e0e0e0;
     color: black;
   }
 }

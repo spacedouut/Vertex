@@ -1,4 +1,4 @@
-import { Settings } from 'lucide-react';
+ import { Settings } from 'lucide-react';
 import styles from './Layout.module.css';
 
 interface LayoutProps {

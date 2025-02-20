@@ -11,6 +11,7 @@ interface AddModelModalProps {
     provider: APIType;
     apiKey: string;
     baseUrl: string;
+    modelId: string;
   }) => void;
 }
 
@@ -19,6 +20,7 @@ export function AddModelModal({ onClose, onAdd }: AddModelModalProps) {
   const [provider, setProvider] = useState<APIType>(APIType.OpenAI);
   const [apiKey, setApiKey] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
+  const [modelId, setModelId] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +30,7 @@ export function AddModelModal({ onClose, onAdd }: AddModelModalProps) {
       provider,
       apiKey,
       baseUrl,
+      modelId,
     });
     onClose();
   };
@@ -42,13 +45,25 @@ export function AddModelModal({ onClose, onAdd }: AddModelModalProps) {
         
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formGroup}>
-            <label htmlFor="name">Model Name</label>
+            <label htmlFor="name">Display Name</label>
             <input
               id="name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter a friendly name"
+              required
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="modelId">Model ID</label>
+            <input
+              id="modelId"
+              type="text"
+              value={modelId}
+              onChange={(e) => setModelId(e.target.value)}
+              placeholder="e.g., gpt-4, claude-3-opus"
               required
             />
           </div>

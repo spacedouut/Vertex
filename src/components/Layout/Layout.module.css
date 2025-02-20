@@ -23,4 +23,16 @@
 
 .settingsButton:hover {
   background-color: #404040;
+}
+
+@media (prefers-color-scheme: light) {
+  .settingsButton {
+    background-color: #e0e0e0;
+    color: #333333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .settingsButton:hover {
+    background-color: #d0d0d0;
+  }
 } 

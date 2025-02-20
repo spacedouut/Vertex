@@ -220,7 +220,7 @@
 
 .submitButton:hover {
   background-color: #505050;
-} 
+}
 
 h1 {
   color: #ffffff;
@@ -241,4 +241,102 @@ h3 {
   font-size: 1.5rem;
   font-weight: 500;
   font-family: "NeueCorp";
+}
+
+@media (prefers-color-scheme: light) {
+  .overlay,
+  .modalOverlay {
+    background-color: rgba(0, 0, 0, 0.25);
+  }
+
+  .modal,
+  .addModelModal {
+    background-color: #ffffff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .header h2,
+  h1, h2, h3 {
+    color: #333333;
+  }
+
+  .closeButton {
+    color: #333333;
+  }
+
+  .temperatureControl input[type="range"] {
+    background: #e0e0e0;
+  }
+
+  .temperatureControl input[type="range"]::-webkit-slider-thumb {
+    background: #404040;
+  }
+
+  .temperatureControl span {
+    color: #333333;
+  }
+
+  .addButton {
+    background-color: #e0e0e0;
+    color: #333333;
+  }
+
+  .addButton:hover {
+    background-color: #d0d0d0;
+  }
+
+  .modelItem {
+    background-color: #f0f0f0;
+    border: 1px solid #e0e0e0;
+  }
+
+  .modelName {
+    color: #333333;
+  }
+
+  .modelProvider {
+    color: #666666;
+  }
+
+  .formGroup label {
+    color: #333333;
+  }
+
+  .formGroup input,
+  .formGroup select {
+    background-color: #f0f0f0;
+    border: 1px solid #e0e0e0;
+    color: #333333;
+  }
+
+  .formGroup input:focus,
+  .formGroup select:focus {
+    border-color: #404040;
+  }
+
+  .cancelButton {
+    border: 1px solid #e0e0e0;
+    color: #333333;
+  }
+
+  .cancelButton:hover {
+    background-color: #f0f0f0;
+  }
+
+  .submitButton {
+    background-color: #e0e0e0;
+    color: #333333;
+  }
+
+  .submitButton:hover {
+    background-color: #d0d0d0;
+  }
+
+  .deleteButton {
+    background-color: #ff6666;
+  }
+
+  .deleteButton:hover {
+    background-color: #ff4444;
+  }
 }

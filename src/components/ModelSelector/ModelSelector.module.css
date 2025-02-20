@@ -75,4 +75,56 @@
   text-align: center;
   color: #888888;
   font-size: 14px;
+}
+
+@media (prefers-color-scheme: light) {
+  .model-selector {
+    background-color: #e0e0e0;
+  }
+
+  .model-selector:hover {
+    background-color: #d0d0d0;
+  }
+
+  .selected-model {
+    color: #333333;
+  }
+
+  .arrow {
+    color: #333333;
+  }
+
+  .model-dropdown {
+    background-color: #ffffff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+  }
+
+  .model-option {
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .model-option:last-child {
+    border-bottom: none;
+  }
+
+  .model-option:hover {
+    background-color: #f0f0f0;
+  }
+
+  .model-option.selected {
+    background-color: #f0f0f0;
+  }
+
+  .model-name {
+    color: #333333;
+  }
+
+  .model-provider {
+    color: #666666;
+  }
+
+  .no-models {
+    color: #666666;
+  }
 } 
