@@ -15,14 +15,12 @@ import { ChatPage } from "./pages/Chat/Chat";
 import { ModelManager, APIType } from "./utils/ModelManager";
 import { db, Message, Chat } from "./utils/Dexie";
 import { Sidebar } from "./components/Sidebar/Sidebar";
-import { ModelSelector } from "./components/ModelSelector/ModelSelector";
 import { SettingsModal } from "./components/SettingsModal/SettingsModal";
 import { Layout } from "./components/Layout/Layout";
 
 function ChatWrapper() {
   const { uuid } = useParams();
   const location = useLocation();
-  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedModel, setSelectedModel] = useState("qwen/qwen-vl-plus:free");
@@ -261,7 +259,6 @@ function ChatWrapper() {
 function NewChatWrapper() {
   const navigate = useNavigate();
   const [chats, setChats] = useState<Chat[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [selectedModel, setSelectedModel] = useState(() => {
     const stored = localStorage.getItem('lastUsedModel');
     return stored || "qwen/qwen-vl-plus:free";
@@ -302,7 +299,6 @@ function NewChatWrapper() {
     };
 
     await db.messages.add(initialMessage);
-    setMessages([initialMessage]);
 
     navigate(`/chat/${newUuid}`, { state: { initialMessages: true } });
   };
