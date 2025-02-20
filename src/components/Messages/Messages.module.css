@@ -1,5 +1,5 @@
 .message-user {
-  padding: 0.5rem 1rem;
+  padding: 0rem 1rem;
   background-color: #606060;
   border-radius: 25px;
   align-self: flex-end;
@@ -8,7 +8,7 @@
 }
 
 .message-assistant {
-  padding: 0.5rem 1rem;
+  padding: 0rem 1rem;
   background-color: #353535;
   border-radius: 25px;
   align-self: flex-start;

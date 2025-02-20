@@ -3,3 +3,35 @@
   flex-direction: row;
   width: 100%;
 }
+
+.chat-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #131313;
+  border-bottom: 1px solid #303030;
+  gap: 1rem;
+}
+
+.settings-button {
+  background-color: #303030;
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: "NeueCorp";
+  transition: background-color 0.2s ease;
+}
+
+.settings-button:hover {
+  background-color: #404040;
+}

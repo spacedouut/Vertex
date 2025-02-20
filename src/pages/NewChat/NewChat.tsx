@@ -3,15 +3,25 @@ import { MessageBox } from "../../components/MessageBox/MessageBox";
 
 import styles from "./NewChat.module.css";
 
+interface NewChatPageProps {
+  onSendMessage: (message: string) => void;
+  selectedModel: string;
+  onModelChange: (modelId: string) => void;
+}
+
 export function NewChatPage({
   onSendMessage,
-}: {
-  onSendMessage: (message: string) => void;
-}) {
+  selectedModel,
+  onModelChange,
+}: NewChatPageProps) {
   return (
     <div className={styles["new-chat-container"]}>
       <Greeting username="user" />
-      <MessageBox onSend={onSendMessage} />
+      <MessageBox 
+        onSend={onSendMessage}
+        selectedModel={selectedModel}
+        onModelChange={onModelChange}
+      />
     </div>
   );
 }

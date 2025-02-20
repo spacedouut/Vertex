@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { ModelSelector } from "../ModelSelector/ModelSelector";
 import styles from "./MessageBox.module.css";
-
 
 interface ToolChipInterface {
     name: string;
@@ -23,7 +23,13 @@ function Tools({ tools }: { tools: ToolChipInterface[] }) {
     );
 }
 
-function InputBox({ onSend }: { onSend: (message: string) => void }) {
+interface InputBoxProps {
+    onSend: (message: string) => void;
+    selectedModel: string;
+    onModelChange: (modelId: string) => void;
+}
+
+function InputBox({ onSend, selectedModel, onModelChange }: InputBoxProps) {
     const [input, setInput] = useState("");
 
     const handleSend = () => {
@@ -51,14 +57,26 @@ function InputBox({ onSend }: { onSend: (message: string) => void }) {
                 onKeyPress={handleKeyPress}
                 rows={1} // This will make the textarea height adjust to content
             />
-            <button className={styles["message-send"]} onClick={handleSend}>
-                Send
-            </button>
+            <div className={styles["input-actions"]}>
+                <ModelSelector
+                    selectedModel={selectedModel}
+                    onModelChange={onModelChange}
+                />
+                <button className={styles["message-send"]} onClick={handleSend}>
+                    Send
+                </button>
+            </div>
         </div>
     );
 }
 
-export function MessageBox({ onSend }: { onSend: (message: string) => void }) {
+interface MessageBoxProps {
+    onSend: (message: string) => void;
+    selectedModel: string;
+    onModelChange: (modelId: string) => void;
+}
+
+export function MessageBox({ onSend, selectedModel, onModelChange }: MessageBoxProps) {
     const tools = [
         { name: "tool1" },
         { name: "tool2" },
@@ -67,7 +85,11 @@ export function MessageBox({ onSend }: { onSend: (message: string) => void }) {
 
     return (
         <div className={styles["message-box-container"]}>
-            <InputBox onSend={onSend} />
+            <InputBox 
+                onSend={onSend}
+                selectedModel={selectedModel}
+                onModelChange={onModelChange}
+            />
             <Tools tools={tools} />
         </div>
     );

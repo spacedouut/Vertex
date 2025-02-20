@@ -4,23 +4,56 @@
   padding: 20px;
 
   overflow-y: auto;
-  z-index: 100; /* Ensure sidebar stays on top */
+  z-index: 50; /* Below the toggle button */
   max-width: 350px;
   padding: 2rem;
   margin: 2.5rem 0rem;
   border-radius: 0px 30px 30px 0px;
 
-  transform: translateX(0); /* Default: visible */
+  transition: all 0.3s ease, opacity 0.3s ease;
+  opacity: 1;
+  position: relative;
 }
 
 .sidebar.hidden {
-  transform: translateX(-100%); /* Hide sidebar */
+  margin-left: calc(
+    -350px - 65px
+  ); /* Move the sidebar off-screen when hidden */
+  opacity: 0;
+  pointer-events: none; /* Prevent interaction when hidden */
+}
+
+/* Toggle button styling */
+.sidebar-toggle {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 100; /* Keep the toggle above the sidebar */
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #404040;
+  color: white;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: left 0.3s ease, background-color 0.3s ease;
+}
+
+/* When sidebar is visible, push the toggle button to the right */
+.sidebar:not(.hidden) + .sidebar-toggle,
+.sidebar:not(.hidden) ~ .sidebar-toggle {
+  left: calc(350px - 20px);
 }
 
 .sidebar-title {
   font-family: "Telegraf";
   font-size: 1.5rem;
 }
+
 .sidebar-chat-item {
   border-radius: 50px;
   background-color: #505050;
@@ -53,8 +86,45 @@
     color: black;
   }
 
-  .sidebar-chat-item, .sidebar-newchat-button {
+  .sidebar-chat-item,
+  .sidebar-newchat-button {
     background-color: #d0d0d0;
     color: black;
+  }
+
+  .sidebar-toggle {
+    background-color: #d0d0d0;
+    color: black;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border-radius: 0;
+    padding-top: 60px;
+  }
+
+  /* Hide the sidebar when hidden */
+  .sidebar.hidden {
+    transform: translateX(-100%); /* Slide out to the left */
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .sidebar:not(.hidden) {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .sidebar:not(.hidden) + .sidebar-toggle,
+  .sidebar:not(.hidden) ~ .sidebar-toggle {
+    left: 20px; /* Keep the toggle button in its original position */
   }
 }

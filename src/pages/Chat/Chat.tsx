@@ -3,17 +3,27 @@ import { MessageBox } from "../../components/MessageBox/MessageBox";
 
 import styles from "./Chat.module.css";
 
+interface ChatPageProps {
+    messages: { content: string; role: string }[];
+    onSendMessage: (message: string) => void;
+    selectedModel: string;
+    onModelChange: (modelId: string) => void;
+}
+
 export function ChatPage({
     messages,
     onSendMessage,
-}: {
-    messages: { content: string; role: string }[];
-    onSendMessage: (message: string) => void;
-}) {
+    selectedModel,
+    onModelChange,
+}: ChatPageProps) {
     return (
         <div className={styles["chat-container"]}>
             <Messages messages={messages} />
-            <MessageBox onSend={onSendMessage} />
+            <MessageBox 
+                onSend={onSendMessage}
+                selectedModel={selectedModel}
+                onModelChange={onModelChange}
+            />
         </div>
     );
 }

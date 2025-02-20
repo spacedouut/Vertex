@@ -1,0 +1,78 @@
+.model-selector-container {
+  position: relative;
+  font-family: "NeueCorp";
+}
+
+.model-selector {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #404040;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  min-width: 150px;
+}
+
+.model-selector:hover {
+  background-color: #505050;
+}
+
+.selected-model {
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.arrow {
+  font-size: 10px;
+  color: #ffffff;
+  transition: transform 0.2s ease;
+  margin-left: 8px;
+}
+
+.model-dropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  width: 250px;
+  background-color: #303030;
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 1000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.model-option {
+  padding: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.model-option:hover {
+  background-color: #404040;
+}
+
+.model-option.selected {
+  background-color: #404040;
+}
+
+.model-name {
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.model-provider {
+  color: #888888;
+  font-size: 12px;
+}
+
+.no-models {
+  padding: 16px;
+  text-align: center;
+  color: #888888;
+  font-size: 14px;
+} 
