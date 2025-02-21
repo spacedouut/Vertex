@@ -13,17 +13,10 @@ export interface ModelConfig {
 
 export const models: ModelConfig[] = [
   {
-    id: "qwen/qwen-vl-plus:free",
-    name: "Qwen VL Plus",
+    id: "deepseek-r1-distill-llama-70b",
+    name: "Deepseek R1 Distill 70B",
     provider: APIType.OpenAI,
-    contextWindow: 16384,
-    defaultTemperature: 0.8,
-  },
-  {
-    id: "google/learnlm-1.5-pro-experimental:free",
-    name: "LearnLM 1.5 Pro",
-    provider: APIType.OpenAI,
-    contextWindow: 16384,
+    contextWindow: 32768,
     defaultTemperature: 0.7,
   },
   {

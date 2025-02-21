@@ -1,26 +1,45 @@
+.hover-area {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 60px;
+  height: 100%;
+  z-index: 49;
+  transition: width 0.3s ease;
+}
+
+.hover-area:hover {
+  width: 350px;
+}
+
 .sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 350px;
   background-color: #303030;
-  padding: 20px;
-
+  height: 100%;
   overflow-y: auto;
-  z-index: 50; /* Below the toggle button */
   max-width: 350px;
   padding: 2rem;
-  margin: 2.5rem 0rem;
   border-radius: 0px 30px 30px 0px;
-
-  transition: all 0.3s ease, opacity 0.3s ease;
+  transition: all 0.3s ease;
   opacity: 1;
-  position: relative;
+  transform: translateX(0);
+  pointer-events: auto;
 }
 
 .sidebar.hidden {
-  margin-left: calc(
-    -350px - 65px
-  ); /* Move the sidebar off-screen when hidden */
-  opacity: 0;
-  pointer-events: none; /* Prevent interaction when hidden */
+  transform: translateX(-400px);
+  opacity: 0.6;
+  pointer-events: none;
+  filter: blur(8px);
+}
+
+.sidebar-container.locked .sidebar {
+  position: relative;
+  transform: none;
+  opacity: 1;
 }
 
 /* Toggle button styling */
@@ -47,6 +66,29 @@
 .sidebar:not(.hidden) + .sidebar-toggle,
 .sidebar:not(.hidden) ~ .sidebar-toggle {
   left: calc(350px - 20px);
+}
+
+.lock-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #404040;
+  color: white;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease;
+}
+
+.lock-button:hover {
+  background-color: #505050;
 }
 
 .sidebar-title {
@@ -96,9 +138,22 @@
     background-color: #e0e0e0;
     color: black;
   }
+
+  .lock-button {
+    background-color: #e0e0e0;
+    color: black;
+  }
+
+  .lock-button:hover {
+    background-color: #d0d0d0;
+  }
 }
 
 @media (max-width: 768px) {
+  .hover-area {
+    display: none;
+  }
+
   .sidebar {
     position: fixed;
     top: 0;
@@ -112,9 +167,8 @@
 
   /* Hide the sidebar when hidden */
   .sidebar.hidden {
-    transform: translateX(-100%); /* Slide out to the left */
+    transform: translateX(-100%);
     opacity: 0;
-    pointer-events: none;
   }
 
   .sidebar:not(.hidden) {
