@@ -23,17 +23,18 @@ function ChatWrapper() {
   const location = useLocation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
-  const [selectedModel, setSelectedModel] = useState("qwen/qwen-vl-plus:free");
+  const [selectedModel, setSelectedModel] = useState("deepseek-r1-distill-llama-70b");
   const messagesRef = useRef<Message[]>(messages);
   const initialLoadRef = useRef(true);
 
   useEffect(() => {
     const loadChats = async () => {
+      console.debug("[ChatWrapper] Loading all chats");
       const allChats = await db.chats.toArray();
-      // Sort chats by timestamp in descending order
       const sortedChats = allChats.sort(
         (a, b) => (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
       );
+      console.debug(`[ChatWrapper] Loaded ${sortedChats.length} chats`);
       setChats(sortedChats);
     };
 
@@ -41,14 +42,15 @@ function ChatWrapper() {
       if (!uuid) return;
 
       try {
+        console.debug(`[ChatWrapper] Loading chat with UUID: ${uuid}`);
         const chat = await db.chats.get({ uuid });
         if (!chat) {
-          console.error("Chat not found!");
+          console.error("[ChatWrapper] Chat not found!");
           return;
         }
 
-        // Set the selected model from the chat if it exists
         if (chat.model) {
+          console.debug(`[ChatWrapper] Setting model from chat: ${chat.model}`);
           setSelectedModel(chat.model);
         }
 
@@ -56,7 +58,8 @@ function ChatWrapper() {
           .where("chatId")
           .equals(chat.id!)
           .sortBy("timestamp");
-
+        
+        console.debug(`[ChatWrapper] Loaded ${storedMessages.length} messages for chat`);
         setMessages(storedMessages);
         messagesRef.current = storedMessages;
 
@@ -66,11 +69,12 @@ function ChatWrapper() {
             storedMessages.length === 1 &&
             storedMessages[0].role === "user"
           ) {
+            console.debug("[ChatWrapper] Processing initial message");
             await handleSendMessage(storedMessages[0].content, true);
           }
         }
       } catch (error) {
-        console.error("Error loading chat and messages:", error);
+        console.error("[ChatWrapper] Error loading chat and messages:", error);
       }
     };
 
@@ -78,75 +82,14 @@ function ChatWrapper() {
     loadChatAndMessages();
   }, [uuid, location.state]);
 
-  // Function to generate chat title
-  const generateChatTitle = async (
-    currentChatContent: Message[],
-    chatId: number
-  ) => {
-    try {
-      // Get the custom model configuration
-      const stored = localStorage.getItem('customModels');
-      const customModels = stored ? JSON.parse(stored) : [];
-      const modelConfig = customModels.find((m: any) => m.id === selectedModel);
-
-      const modelManager = new ModelManager({
-        provider: modelConfig ? modelConfig.provider : APIType.OpenAI,
-        key: modelConfig ? modelConfig.apiKey : (import.meta.env.VITE_API_KEY as string) || "",
-        endpoint: modelConfig ? modelConfig.baseUrl || "https://openrouter.ai/api/v1" : "https://openrouter.ai/api/v1",
-      });
-
-      // Create temporary messages for title generation (not saved to database)
-      const titleRequest: Message[] = [
-        ...currentChatContent,
-        {
-          chatId: 0, // IDs  dont matter when the chats arent saved
-          content: "Provide a title of the chat. No more than 5 words, should be immediately relevant, and be directly descriptive about the content. Output the title only; No quotes or formatting..",
-          role: "user",
-          timestamp: new Date(),
-        },
-      ];
-
-      // Get title from AI
-      const titleStream = await modelManager.stream(
-        titleRequest,
-        modelConfig ? modelConfig.modelId : "google/learnlm-1.5-pro-experimental:free",
-        {
-          max_tokens: 100,
-          temperature: 0.7,
-        }
-      );
-
-      let title = "";
-      for await (const chunk of titleStream) {
-        title += chunk;
-      }
-
-      // Trim and limit title length
-      title = title.trim();
-      if (title.length > 50) {
-        title = title.substring(0, 47) + "...";
-      }
-
-      // Update chat with generated title
-      await db.chats.update(chatId, { name: title });
-
-      // Refresh chats list
-      const allChats = await db.chats.toArray();
-      const sortedChats = allChats.sort(
-        (a, b) => (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
-      );
-      setChats(sortedChats);
-    } catch (error) {
-      console.error("Error generating chat title:", error);
-    }
-  };
-
   const handleModelChange = async (modelId: string) => {
+    console.debug(`[ChatWrapper] Changing model to: ${modelId}`);
     setSelectedModel(modelId);
     if (uuid) {
       const chat = await db.chats.get({ uuid });
       if (chat) {
         await db.chats.update(chat.id!, { model: modelId });
+        console.debug(`[ChatWrapper] Updated chat ${chat.id} with new model`);
       }
     }
   };
@@ -158,8 +101,10 @@ function ChatWrapper() {
     if (!uuid) return;
 
     try {
+      console.debug(`[ChatWrapper] Sending ${isInitial ? 'initial ' : ''}message`);
       let chat = await db.chats.get({ uuid });
       if (!chat) {
+        console.debug("[ChatWrapper] Creating new chat");
         const chatId = await db.chats.add({
           uuid,
           name: "New Chat",
@@ -169,37 +114,39 @@ function ChatWrapper() {
         chat = await db.chats.get(chatId);
       }
 
-      // Update chat timestamp
       await db.chats.update(chat!.id!, { timestamp: new Date() });
 
-      let newMessage: Message;
-
       if (!isInitial) {
-        newMessage = {
+        const newMessage = {
           chatId: chat!.id!,
           content: message,
           role: "user",
           timestamp: new Date(),
         };
-
         await db.messages.add(newMessage);
+        console.debug("[ChatWrapper] Added user message to database");
 
         const updatedMessages = [...messagesRef.current, newMessage];
         setMessages(updatedMessages);
         messagesRef.current = updatedMessages;
       }
 
-      // Get the custom model configuration
-      const stored = localStorage.getItem('customModels');
+      const stored = localStorage.getItem("customModels");
       const customModels = stored ? JSON.parse(stored) : [];
-      const modelConfig = customModels.find((m: any) => m.id === selectedModel);
+      const modelConfig = customModels.find(
+        (m: any) => m.id === selectedModel
+      );
 
+      console.debug(`[ChatWrapper] Using model: ${modelConfig ? 'Custom' : 'Default'} - ${selectedModel}`);
       const modelManager = new ModelManager({
         provider: modelConfig ? modelConfig.provider : APIType.OpenAI,
-        key: modelConfig ? modelConfig.apiKey : (import.meta.env.VITE_API_KEY as string) || "",
-        endpoint: modelConfig ? modelConfig.baseUrl || "https://openrouter.ai/api/v1" : "https://openrouter.ai/api/v1",
+        key: modelConfig
+          ? modelConfig.apiKey
+          : (import.meta.env.VITE_API_KEY as string) || "",
+        endpoint: modelConfig?.baseUrl || "https://api.groq.com/openai/v1",
       });
 
+      console.debug("[ChatWrapper] Starting message stream");
       const stream = await modelManager.stream(
         messagesRef.current,
         modelConfig ? modelConfig.modelId : selectedModel,
@@ -217,6 +164,7 @@ function ChatWrapper() {
 
       setMessages((prev) => [...prev, responseMessage]);
 
+      console.debug("[ChatWrapper] Processing stream chunks");
       for await (const chunk of stream) {
         responseMessage.content += chunk;
         setMessages([...messagesRef.current, responseMessage]);
@@ -224,8 +172,8 @@ function ChatWrapper() {
       messagesRef.current = [...messagesRef.current, responseMessage];
 
       await db.messages.add(responseMessage);
+      console.debug("[ChatWrapper] Added assistant response to database");
 
-      // Generate title if this is the first message/response pair
       const chatMessages = await db.messages
         .where("chatId")
         .equals(chat!.id!)
@@ -236,28 +184,92 @@ function ChatWrapper() {
         chatMessages[0].role === "user" &&
         chatMessages[1].role === "assistant"
       ) {
+        console.debug("[ChatWrapper] Generating chat title");
         await generateChatTitle(chatMessages, chat!.id!);
       }
 
-      // Update chat timestamp after assistant response
       await db.chats.update(chat!.id!, { timestamp: new Date() });
 
-      // Refresh chat list to show updated order
+      const allChats = await db.chats.toArray();
+      const sortedChats = allChats.sort(
+        (a, b) =>
+          (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
+      );
+      setChats(sortedChats);
+      console.debug("[ChatWrapper] Updated chat list");
+    } catch (error) {
+      console.error("[ChatWrapper] Streaming error:", error);
+    }
+  };
+
+  const generateChatTitle = async (
+    currentChatContent: Message[],
+    chatId: number
+  ) => {
+    try {
+      console.debug("[ChatWrapper] Starting title generation");
+      const stored = localStorage.getItem("customModels");
+      const customModels = stored ? JSON.parse(stored) : [];
+      const modelConfig = customModels.find((m: any) => m.id === selectedModel);
+
+      const modelManager = new ModelManager({
+        provider: modelConfig ? modelConfig.provider : APIType.OpenAI,
+        key: modelConfig
+          ? modelConfig.apiKey
+          : (import.meta.env.VITE_API_KEY as string) || "",
+        endpoint: modelConfig?.baseUrl || "https://api.groq.com/openai/v1",
+      });
+
+      const titleRequest: Message[] = [
+        ...currentChatContent,
+        {
+          chatId: 0,
+          content:
+            "Provide a title of the chat. No more than 5 words, should be immediately relevant, and be directly descriptive about the content. Output the title only; No quotes or formatting..",
+          role: "user",
+          timestamp: new Date(),
+        },
+      ];
+
+      console.debug("[ChatWrapper] Requesting title from model");
+      const titleStream = await modelManager.stream(
+        titleRequest,
+        modelConfig ? modelConfig.modelId : selectedModel,
+        {
+          max_tokens: 100,
+          temperature: 0.7,
+        }
+      );
+
+      let title = "";
+      for await (const chunk of titleStream) {
+        title += chunk;
+      }
+
+      title = title.trim();
+      if (title.length > 50) {
+        title = title.substring(0, 47) + "...";
+      }
+      console.debug(`[ChatWrapper] Generated title: ${title}`);
+
+      await db.chats.update(chatId, { name: title });
+
       const allChats = await db.chats.toArray();
       const sortedChats = allChats.sort(
         (a, b) => (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
       );
       setChats(sortedChats);
+      console.debug("[ChatWrapper] Updated chat list with new title");
     } catch (error) {
-      console.error("Streaming error:", error);
+      console.error("[ChatWrapper] Error generating chat title:", error);
     }
   };
 
   return (
     <div className="chat-wrapper">
       <Sidebar chats={chats} showGreeting={true} />
-      <ChatPage 
-        messages={messages} 
+      <ChatPage
+        messages={messages}
         onSendMessage={handleSendMessage}
         selectedModel={selectedModel}
         onModelChange={handleModelChange}
@@ -270,8 +282,8 @@ function NewChatWrapper() {
   const navigate = useNavigate();
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedModel, setSelectedModel] = useState(() => {
-    const stored = localStorage.getItem('lastUsedModel');
-    return stored || "qwen/qwen-vl-plus:free";
+    const stored = localStorage.getItem("lastUsedModel");
+    return stored || "deepseek-r1-distill-llama-70b";
   });
 
   useEffect(() => {
@@ -288,7 +300,7 @@ function NewChatWrapper() {
 
   const handleModelChange = (modelId: string) => {
     setSelectedModel(modelId);
-    localStorage.setItem('lastUsedModel', modelId);
+    localStorage.setItem("lastUsedModel", modelId);
   };
 
   const handleSendMessage = async (message: string) => {
@@ -316,7 +328,7 @@ function NewChatWrapper() {
   return (
     <div className="chat-wrapper">
       <Sidebar chats={chats} showGreeting={false} />
-      <NewChatPage 
+      <NewChatPage
         onSendMessage={handleSendMessage}
         selectedModel={selectedModel}
         onModelChange={handleModelChange}
@@ -328,13 +340,13 @@ function NewChatWrapper() {
 function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [temperature, setTemperature] = useState(() => {
-    const stored = localStorage.getItem('temperature');
+    const stored = localStorage.getItem("temperature");
     return stored ? parseFloat(stored) : 0.8;
   });
 
   const handleTemperatureChange = (newTemp: number) => {
     setTemperature(newTemp);
-    localStorage.setItem('temperature', newTemp.toString());
+    localStorage.setItem("temperature", newTemp.toString());
   };
 
   return (
