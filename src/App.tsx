@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  BrowserRouter as Router,
+  HashRouter as Router,
   Routes,
   Route,
   useParams,
@@ -84,10 +84,15 @@ function ChatWrapper() {
     chatId: number
   ) => {
     try {
+      // Get the custom model configuration
+      const stored = localStorage.getItem('customModels');
+      const customModels = stored ? JSON.parse(stored) : [];
+      const modelConfig = customModels.find((m: any) => m.id === selectedModel);
+
       const modelManager = new ModelManager({
-        provider: APIType.OpenAI,
-        key: (import.meta.env.VITE_API_KEY as string) || "",
-        endpoint: "https://openrouter.ai/api/v1",
+        provider: modelConfig ? modelConfig.provider : APIType.OpenAI,
+        key: modelConfig ? modelConfig.apiKey : (import.meta.env.VITE_API_KEY as string) || "",
+        endpoint: modelConfig ? modelConfig.baseUrl || "https://openrouter.ai/api/v1" : "https://openrouter.ai/api/v1",
       });
 
       // Create temporary messages for title generation (not saved to database)
@@ -104,7 +109,7 @@ function ChatWrapper() {
       // Get title from AI
       const titleStream = await modelManager.stream(
         titleRequest,
-        "google/learnlm-1.5-pro-experimental:free",
+        modelConfig ? modelConfig.modelId : "google/learnlm-1.5-pro-experimental:free",
         {
           max_tokens: 100,
           temperature: 0.7,
@@ -184,15 +189,20 @@ function ChatWrapper() {
         messagesRef.current = updatedMessages;
       }
 
+      // Get the custom model configuration
+      const stored = localStorage.getItem('customModels');
+      const customModels = stored ? JSON.parse(stored) : [];
+      const modelConfig = customModels.find((m: any) => m.id === selectedModel);
+
       const modelManager = new ModelManager({
-        provider: APIType.OpenAI,
-        key: (import.meta.env.VITE_API_KEY as string) || "",
-        endpoint: "https://openrouter.ai/api/v1",
+        provider: modelConfig ? modelConfig.provider : APIType.OpenAI,
+        key: modelConfig ? modelConfig.apiKey : (import.meta.env.VITE_API_KEY as string) || "",
+        endpoint: modelConfig ? modelConfig.baseUrl || "https://openrouter.ai/api/v1" : "https://openrouter.ai/api/v1",
       });
 
       const stream = await modelManager.stream(
         messagesRef.current,
-        selectedModel,
+        modelConfig ? modelConfig.modelId : selectedModel,
         {
           max_tokens: 16384,
           temperature: 0.8,

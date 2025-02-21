@@ -243,6 +243,26 @@ h3 {
   font-family: "NeueCorp";
 }
 
+.modelActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.editButton {
+  background-color: #404040;
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: "NeueCorp";
+  transition: background-color 0.2s ease;
+}
+
+.editButton:hover {
+  background-color: #505050;
+}
+
 @media (prefers-color-scheme: light) {
   .overlay,
   .modalOverlay {
@@ -338,5 +358,14 @@ h3 {
 
   .deleteButton:hover {
     background-color: #ff4444;
+  }
+
+  .editButton {
+    background-color: #e0e0e0;
+    color: #333333;
+  }
+
+  .editButton:hover {
+    background-color: #d0d0d0;
   }
 }

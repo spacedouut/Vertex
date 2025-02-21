@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { APIType } from '../../utils/ModelManager';
 import { AddModelModal } from './AddModelModal';
+import { EditModelModal } from './EditModelModal';
 import styles from './SettingsModal.module.css';
 
 interface SettingsModalProps {
@@ -16,6 +17,7 @@ interface CustomModel {
   provider: APIType;
   apiKey: string;
   baseUrl: string;
+  modelId: string;
 }
 
 export function SettingsModal({ 
@@ -25,6 +27,8 @@ export function SettingsModal({
   onTemperatureChange,
 }: SettingsModalProps) {
   const [isModelModalOpen, setIsModelModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [modelToEdit, setModelToEdit] = useState<CustomModel | null>(null);
   const [customModels, setCustomModels] = useState<CustomModel[]>(() => {
     const stored = localStorage.getItem('customModels');
     return stored ? JSON.parse(stored) : [];
@@ -32,6 +36,12 @@ export function SettingsModal({
 
   const handleAddModel = (model: CustomModel) => {
     const newModels = [...customModels, model];
+    setCustomModels(newModels);
+    localStorage.setItem('customModels', JSON.stringify(newModels));
+  };
+
+  const handleEditModel = (model: CustomModel) => {
+    const newModels = customModels.map(m => m.id === model.id ? model : m);
     setCustomModels(newModels);
     localStorage.setItem('customModels', JSON.stringify(newModels));
   };
@@ -86,12 +96,23 @@ export function SettingsModal({
                     <span className={styles.modelName}>{model.name}</span>
                     <span className={styles.modelProvider}>{APIType[model.provider]}</span>
                   </div>
-                  <button
-                    className={styles.deleteButton}
-                    onClick={() => handleDeleteModel(model.id)}
-                  >
-                    Delete
-                  </button>
+                  <div className={styles.modelActions}>
+                    <button
+                      className={styles.editButton}
+                      onClick={() => {
+                        setModelToEdit(model);
+                        setIsEditModalOpen(true);
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className={styles.deleteButton}
+                      onClick={() => handleDeleteModel(model.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -103,6 +124,17 @@ export function SettingsModal({
         <AddModelModal
           onClose={() => setIsModelModalOpen(false)}
           onAdd={handleAddModel}
+        />
+      )}
+
+      {isEditModalOpen && modelToEdit && (
+        <EditModelModal
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setModelToEdit(null);
+          }}
+          onSave={handleEditModel}
+          model={modelToEdit}
         />
       )}
     </div>
