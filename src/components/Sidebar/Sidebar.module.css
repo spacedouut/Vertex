@@ -31,6 +31,8 @@
   opacity: 1;
   transform: translateX(0);
   pointer-events: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar.hidden {
@@ -81,8 +83,8 @@
 
 .sidebar-chat-item {
   border-radius: 50px;
-  background-color: #505050;
-  padding: 0.9rem;
+  background-color: #404040;
+  padding: 0.75rem;
 }
 
 .sidebar-chat-list {
@@ -90,6 +92,8 @@
   flex-direction: column;
   gap: 0.5rem;
   margin-top: 0.5rem;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .sidebar-newchat-button {
