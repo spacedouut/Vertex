@@ -22,7 +22,7 @@ export enum APIType {
 interface APIInfo {
   provider: APIType;
   key: string;
-  endpoint: string;
+  endpoint?: string;
 }
 
 export class ModelManager {
@@ -31,7 +31,6 @@ export class ModelManager {
     apiInfo: APIInfo = {
       provider: APIType.OpenAI,
       key: "",
-      endpoint: "",
     }
   ) {
     this.apiInfo = apiInfo;
@@ -45,43 +44,43 @@ export class ModelManager {
       case APIType.OpenAI:
         const openai = createOpenAI({
           apiKey: apiKey,
-          baseURL: baseURL,
+          ...(baseURL && { baseURL }),
         });
         return openai(model);
       case APIType.Anthropic:
         const anthropic = createAnthropic({
           apiKey: apiKey,
-          baseURL: baseURL,
+          ...(baseURL && { baseURL }),
         });
         return anthropic(model);
       case APIType.Google:
         const google = createGoogleGenerativeAI({
           apiKey: apiKey,
-          baseURL: baseURL,
+          ...(baseURL && { baseURL }),
         });
         return google(model);
       case APIType.DeepSeek:
         const deepseek = createDeepSeek({
           apiKey: apiKey,
-          baseURL: baseURL,
+          ...(baseURL && { baseURL }),
         });
         return deepseek(model);
       case APIType.Mistral:
         const mistral = createMistral({
           apiKey: apiKey,
-          baseURL: baseURL,
+          ...(baseURL && { baseURL }),
         });
         return mistral(model);
       case APIType.Cohere:
         const cohere = createCohere({
           apiKey: apiKey,
-          baseURL: baseURL,
+          ...(baseURL && { baseURL }),
         });
         return cohere(model);
       case APIType.TogetherAI:
         const togetherai = createTogetherAI({
           apiKey: apiKey,
-          baseURL: baseURL,
+          ...(baseURL && { baseURL }),
         });
         return togetherai(model);
       default:

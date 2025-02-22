@@ -143,7 +143,7 @@ function ChatWrapper() {
         key: modelConfig
           ? modelConfig.apiKey
           : (import.meta.env.VITE_API_KEY as string) || "",
-        endpoint: modelConfig?.baseUrl || "https://api.groq.com/openai/v1",
+        ...(modelConfig?.baseUrl && { endpoint: modelConfig.baseUrl }),
       });
 
       console.debug("[ChatWrapper] Starting message stream");
@@ -217,7 +217,7 @@ function ChatWrapper() {
         key: modelConfig
           ? modelConfig.apiKey
           : (import.meta.env.VITE_API_KEY as string) || "",
-        endpoint: modelConfig?.baseUrl || "https://api.groq.com/openai/v1",
+        ...(modelConfig?.baseUrl && { endpoint: modelConfig.baseUrl }),
       });
 
       const titleRequest: Message[] = [
