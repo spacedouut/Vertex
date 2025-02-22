@@ -6,6 +6,10 @@
   overflow: hidden;
 }
 
+.chat-wrapper.sidebar-locked {
+  padding-left: 350px;
+}
+
 .chat-content {
   display: flex;
   flex-direction: column;
@@ -13,6 +17,7 @@
   min-width: 0;
   height: 100vh;
   overflow: hidden;
+  transition: padding-left 0.3s ease;
 }
 
 .chat-header {

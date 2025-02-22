@@ -8,8 +8,12 @@
   transition: width 0.3s ease;
 }
 
-.hover-area:hover {
-  width: 350px;
+.hover-area.locked {
+  width: calc(350px + 4rem);
+}
+
+.hover-area:hover:not(.locked) {
+  width: calc(350px + 4rem);
 }
 
 .sidebar {
@@ -30,16 +34,18 @@
 }
 
 .sidebar.hidden {
-  transform: translateX(-400px);
-  opacity: 0.6;
+  transform: translateX(-25px);
+  opacity: 0;
   pointer-events: none;
-  filter: blur(8px);
+  filter: blur(16px);
+  width: 275px;
 }
 
 .sidebar-container.locked .sidebar {
   position: relative;
   transform: none;
   opacity: 1;
+  pointer-events: auto;
 }
 
 /* Toggle button styling */
@@ -66,29 +72,6 @@
 .sidebar:not(.hidden) + .sidebar-toggle,
 .sidebar:not(.hidden) ~ .sidebar-toggle {
   left: calc(350px - 20px);
-}
-
-.lock-button {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  z-index: 100;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #404040;
-  color: white;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  transition: background-color 0.3s ease;
-}
-
-.lock-button:hover {
-  background-color: #505050;
 }
 
 .sidebar-title {
@@ -138,47 +121,6 @@
     background-color: #e0e0e0;
     color: black;
   }
-
-  .lock-button {
-    background-color: #e0e0e0;
-    color: black;
-  }
-
-  .lock-button:hover {
-    background-color: #d0d0d0;
-  }
 }
 
-@media (max-width: 768px) {
-  .hover-area {
-    display: none;
-  }
 
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    border-radius: 0;
-    padding-top: 60px;
-  }
-
-  /* Hide the sidebar when hidden */
-  .sidebar.hidden {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-
-  .sidebar:not(.hidden) {
-    transform: translateX(0);
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .sidebar:not(.hidden) + .sidebar-toggle,
-  .sidebar:not(.hidden) ~ .sidebar-toggle {
-    left: 20px; /* Keep the toggle button in its original position */
-  }
-}
