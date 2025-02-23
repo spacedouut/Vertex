@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { APIType } from '../../utils/ModelManager';
 import { AddModelModal } from './AddModelModal';
 import { EditModelModal } from './EditModelModal';
+import { Model } from '../../utils/Dexie';
+import { getAllModels, addModel, updateModel, deleteModel } from '../../utils/modelUtils';
 import styles from './SettingsModal.module.css';
 
 interface SettingsModalProps {
@@ -9,15 +11,6 @@ interface SettingsModalProps {
   onClose: () => void;
   temperature: number;
   onTemperatureChange: (temp: number) => void;
-}
-
-interface CustomModel {
-  name: string;
-  id: string;
-  provider: APIType;
-  apiKey: string;
-  baseUrl: string;
-  modelId: string;
 }
 
 export function SettingsModal({ 
@@ -28,60 +21,68 @@ export function SettingsModal({
 }: SettingsModalProps) {
   const [isModelModalOpen, setIsModelModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [modelToEdit, setModelToEdit] = useState<CustomModel | null>(null);
-  const [customModels, setCustomModels] = useState<CustomModel[]>(() => {
-    const stored = localStorage.getItem('customModels');
-    return stored ? JSON.parse(stored) : [];
-  });
+  const [modelToEdit, setModelToEdit] = useState<Model | null>(null);
+  const [models, setModels] = useState<Model[]>([]);
 
-  const handleAddModel = (model: CustomModel) => {
-    const newModels = [...customModels, model];
-    setCustomModels(newModels);
-    localStorage.setItem('customModels', JSON.stringify(newModels));
+  useEffect(() => {
+    const loadModels = async () => {
+      const allModels = await getAllModels();
+      setModels(allModels);
+    };
+
+    loadModels();
+  }, [isOpen]);
+
+  const handleAddModel = async (modelData: Omit<Model, 'id' | 'timestamp'>) => {
+    const modelId = await addModel(modelData);
+    const allModels = await getAllModels();
+    setModels(allModels);
+    setIsModelModalOpen(false);
   };
 
-  const handleEditModel = (model: CustomModel) => {
-    const newModels = customModels.map(m => m.id === model.id ? model : m);
-    setCustomModels(newModels);
-    localStorage.setItem('customModels', JSON.stringify(newModels));
+  const handleEditModel = async (modelData: Model) => {
+    if (!modelData.id) return;
+    await updateModel(modelData.id, modelData);
+    const allModels = await getAllModels();
+    setModels(allModels);
+    setIsEditModalOpen(false);
+    setModelToEdit(null);
   };
 
-  const handleDeleteModel = (modelId: string) => {
-    const newModels = customModels.filter(model => model.id !== modelId);
-    setCustomModels(newModels);
-    localStorage.setItem('customModels', JSON.stringify(newModels));
+  const handleDeleteModel = async (modelId: number) => {
+    await deleteModel(modelId);
+    const allModels = await getAllModels();
+    setModels(allModels);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className={styles.overlay}>
+    <div className={styles.modalOverlay}>
       <div className={styles.modal}>
         <div className={styles.header}>
-          <h1>Settings</h1>
+          <h2>Settings</h2>
           <button className={styles.closeButton} onClick={onClose}>×</button>
         </div>
         
         <div className={styles.content}>
           <div className={styles.section}>
-            <h2>Model Settings</h2>
             <h3>Temperature</h3>
-            <div className={styles.temperatureControl}>
-              <input
-                type="range"
-                min="0"
-                max="2"
-                step="0.1"
-                value={temperature}
-                onChange={(e) => onTemperatureChange(parseFloat(e.target.value))}
-              />
-              <span>{temperature}</span>
-            </div>
+            <input
+              type="range"
+              min="0"
+              max="2"
+              step="0.1"
+              value={temperature}
+              onChange={(e) => onTemperatureChange(parseFloat(e.target.value))}
+              className={styles.slider}
+            />
+            <div className={styles.temperatureValue}>{temperature}</div>
           </div>
 
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <h3>Custom Models</h3>
+              <h3>Models</h3>
               <button 
                 className={styles.addButton}
                 onClick={() => setIsModelModalOpen(true)}
@@ -90,11 +91,11 @@ export function SettingsModal({
               </button>
             </div>
             <div className={styles.modelsList}>
-              {customModels.map((model) => (
+              {models.map((model) => (
                 <div key={model.id} className={styles.modelItem}>
                   <div className={styles.modelInfo}>
                     <span className={styles.modelName}>{model.name}</span>
-                    <span className={styles.modelProvider}>{APIType[model.provider]}</span>
+                    <span className={styles.modelProvider}>{model.provider}</span>
                   </div>
                   <div className={styles.modelActions}>
                     <button
@@ -108,7 +109,7 @@ export function SettingsModal({
                     </button>
                     <button
                       className={styles.deleteButton}
-                      onClick={() => handleDeleteModel(model.id)}
+                      onClick={() => model.id && handleDeleteModel(model.id)}
                     >
                       Delete
                     </button>

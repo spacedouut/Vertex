@@ -39,7 +39,7 @@
   transform: translateX(-25px);
   opacity: 0;
   pointer-events: none;
-  filter: blur(16px);
+  filter: blur(24px);
   width: 275px;
 }
 

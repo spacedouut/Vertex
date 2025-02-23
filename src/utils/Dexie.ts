@@ -12,21 +12,38 @@ export interface Chat {
   id?: number;
   uuid: string;
   name?: string; 
-  model?: string;
+  modelId?: number; // Changed from model string to modelId number reference
   temperature?: number;
   userId?: string; 
+  timestamp?: Date;
+}
+
+export interface Model {
+  id?: number;
+  name: string;
+  modelId: string;
+  provider: string;
+  apiKey: string;
+  baseUrl?: string;
+  contextWindow?: number;
+  inputCostPer1k?: number;
+  outputCostPer1k?: number;
+  maxTokens?: number;
+  defaultTemperature?: number;
   timestamp?: Date;
 }
 
 export class ChatDatabase extends Dexie {
   chats!: Table<Chat>;
   messages!: Table<Message>;
+  models!: Table<Model>;
 
   constructor() {
     super("ChatDatabase");
-    this.version(2).stores({
+    this.version(4).stores({
       chats: "++id, uuid, timestamp",
-      messages: "++id, chatId, timestamp", 
+      messages: "++id, chatId, timestamp",
+      models: "++id, modelId, provider, timestamp",
     });
   }
 }

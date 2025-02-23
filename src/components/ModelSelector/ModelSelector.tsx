@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { APIType } from '../../utils/ModelManager';
+import { Model } from '../../utils/Dexie';
+import { getAllModels } from '../../utils/modelUtils';
 import styles from './ModelSelector.module.css';
 
 interface ModelSelectorProps {
@@ -7,36 +8,20 @@ interface ModelSelectorProps {
   onModelChange: (modelId: string) => void;
 }
 
-interface CustomModel {
-  id: string;
-  name: string;
-  provider: APIType;
-  apiKey: string;
-  baseUrl: string;
-}
-
 export function ModelSelector({ selectedModel, onModelChange }: ModelSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [customModels, setCustomModels] = useState<CustomModel[]>([]);
+  const [models, setModels] = useState<Model[]>([]);
 
   useEffect(() => {
-    const loadCustomModels = () => {
-      const stored = localStorage.getItem('customModels');
-      if (stored) {
-        setCustomModels(JSON.parse(stored));
-      }
+    const loadModels = async () => {
+      const allModels = await getAllModels();
+      setModels(allModels);
     };
 
-    loadCustomModels();
-    // Listen for changes in localStorage
-    window.addEventListener('storage', loadCustomModels);
-    
-    return () => {
-      window.removeEventListener('storage', loadCustomModels);
-    };
+    loadModels();
   }, []);
 
-  const selectedModelConfig = customModels.find(model => model.id === selectedModel);
+  const selectedModelConfig = models.find(model => model.modelId === selectedModel);
 
   return (
     <div className={styles['model-selector-container']}>
@@ -51,24 +36,24 @@ export function ModelSelector({ selectedModel, onModelChange }: ModelSelectorPro
       </div>
       {isOpen && (
         <div className={styles['model-dropdown']}>
-          {customModels.map((model) => (
+          {models.map((model) => (
             <div
               key={model.id}
               className={`${styles['model-option']} ${
-                model.id === selectedModel ? styles.selected : ''
+                model.modelId === selectedModel ? styles.selected : ''
               }`}
               onClick={() => {
-                onModelChange(model.id);
+                onModelChange(model.modelId);
                 setIsOpen(false);
               }}
             >
               <span className={styles['model-name']}>{model.name}</span>
               <span className={styles['model-provider']}>
-                {APIType[model.provider]}
+                {model.provider}
               </span>
             </div>
           ))}
-          {customModels.length === 0 && (
+          {models.length === 0 && (
             <div className={styles['no-models']}>
               No models configured. Add models in settings.
             </div>

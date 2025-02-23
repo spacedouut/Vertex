@@ -1,43 +1,31 @@
 import { useState } from 'react';
 import { APIType } from '../../utils/ModelManager';
+import { Model } from '../../utils/Dexie';
+import { getProviderFromAPIType, getAPITypeFromString } from '../../utils/modelUtils';
 import styles from './SettingsModal.module.css';
 
 interface EditModelModalProps {
   onClose: () => void;
-  onSave: (model: {
-    id: string;
-    name: string;
-    provider: APIType;
-    apiKey: string;
-    baseUrl: string;
-    modelId: string;
-  }) => void;
-  model: {
-    id: string;
-    name: string;
-    provider: APIType;
-    apiKey: string;
-    baseUrl: string;
-    modelId: string;
-  };
+  onSave: (model: Model) => void;
+  model: Model;
 }
 
 export function EditModelModal({ onClose, onSave, model }: EditModelModalProps) {
   const [name, setName] = useState(model.name);
-  const [provider, setProvider] = useState<APIType>(model.provider);
+  const [provider, setProvider] = useState<APIType>(getAPITypeFromString(model.provider));
   const [apiKey, setApiKey] = useState(model.apiKey);
-  const [baseUrl, setBaseUrl] = useState(model.baseUrl);
+  const [baseUrl, setBaseUrl] = useState(model.baseUrl || '');
   const [modelId, setModelId] = useState(model.modelId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
-      id: model.id,
+      ...model,
       name,
-      provider,
+      modelId,
+      provider: getProviderFromAPIType(provider),
       apiKey,
       baseUrl,
-      modelId,
     });
     onClose();
   };

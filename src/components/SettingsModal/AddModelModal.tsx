@@ -1,18 +1,12 @@
 import { useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import { APIType } from '../../utils/ModelManager';
+import { Model } from '../../utils/Dexie';
+import { getProviderFromAPIType } from '../../utils/modelUtils';
 import styles from './SettingsModal.module.css';
 
 interface AddModelModalProps {
   onClose: () => void;
-  onAdd: (model: {
-    name: string;
-    id: string;
-    provider: APIType;
-    apiKey: string;
-    baseUrl: string;
-    modelId: string;
-  }) => void;
+  onAdd: (model: Omit<Model, 'id' | 'timestamp'>) => void;
 }
 
 export function AddModelModal({ onClose, onAdd }: AddModelModalProps) {
@@ -25,12 +19,11 @@ export function AddModelModal({ onClose, onAdd }: AddModelModalProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onAdd({
-      id: uuidv4(),
       name,
-      provider,
+      modelId,
+      provider: getProviderFromAPIType(provider),
       apiKey,
       baseUrl,
-      modelId,
     });
     onClose();
   };
@@ -39,7 +32,7 @@ export function AddModelModal({ onClose, onAdd }: AddModelModalProps) {
     <div className={styles.modalOverlay}>
       <div className={styles.addModelModal}>
         <div className={styles.header}>
-          <h2>Add Custom Model</h2>
+          <h2>Add Model</h2>
           <button className={styles.closeButton} onClick={onClose}>×</button>
         </div>
         

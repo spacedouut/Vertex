@@ -13,17 +13,18 @@ import "./App.css";
 import { NewChatPage } from "./pages/NewChat/NewChat";
 import { ChatPage } from "./pages/Chat/Chat";
 import { ModelManager, APIType } from "./utils/ModelManager";
-import { db, Message, Chat } from "./utils/Dexie";
+import { db, Message, Chat, Model } from "./utils/Dexie";
 import { Sidebar } from "./components/Sidebar/Sidebar";
 import { SettingsModal } from "./components/SettingsModal/SettingsModal";
 import { Layout } from "./components/Layout/Layout";
+import { getAPITypeFromString } from "./utils/modelUtils";
 
 function ChatWrapper() {
   const { uuid } = useParams();
   const location = useLocation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
-  const [selectedModel, setSelectedModel] = useState("deepseek-r1-distill-llama-70b");
+  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const messagesRef = useRef<Message[]>(messages);
   const initialLoadRef = useRef(true);
 
@@ -49,17 +50,21 @@ function ChatWrapper() {
           return;
         }
 
-        if (chat.model) {
-          console.debug(`[ChatWrapper] Setting model from chat: ${chat.model}`);
-          setSelectedModel(chat.model);
+        if (chat.modelId) {
+          const model = await db.models.get(chat.modelId);
+          if (model) {
+            setSelectedModel(model);
+          }
         }
 
         const storedMessages = await db.messages
           .where("chatId")
           .equals(chat.id!)
           .sortBy("timestamp");
-        
-        console.debug(`[ChatWrapper] Loaded ${storedMessages.length} messages for chat`);
+
+        console.debug(
+          `[ChatWrapper] Loaded ${storedMessages.length} messages for chat`
+        );
         setMessages(storedMessages);
         messagesRef.current = storedMessages;
 
@@ -83,14 +88,24 @@ function ChatWrapper() {
   }, [uuid, location.state]);
 
   const handleModelChange = async (modelId: string) => {
-    console.debug(`[ChatWrapper] Changing model to: ${modelId}`);
-    setSelectedModel(modelId);
-    if (uuid) {
+    if (!uuid) return;
+
+    try {
+      const model = await db.models.where('modelId').equals(modelId).first();
+      if (!model) {
+        console.error("[ChatWrapper] Model not found!");
+        return;
+      }
+
+      setSelectedModel(model);
+      
       const chat = await db.chats.get({ uuid });
       if (chat) {
-        await db.chats.update(chat.id!, { model: modelId });
+        await db.chats.update(chat.id!, { modelId: model.id });
         console.debug(`[ChatWrapper] Updated chat ${chat.id} with new model`);
       }
+    } catch (error) {
+      console.error("[ChatWrapper] Error changing model:", error);
     }
   };
 
@@ -98,107 +113,71 @@ function ChatWrapper() {
     message: string,
     isInitial: boolean = false
   ) => {
-    if (!uuid) return;
+    if (!uuid || !selectedModel) return;
+    console.debug("=== HANDLING SEND MESSAGE ===");
+    console.debug(`UUID: ${uuid}`);
+    console.debug(`Selected Model: ${selectedModel.modelId}`);
+    console.debug(`Message: ${message}`);
 
     try {
-      console.debug(`[ChatWrapper] Sending ${isInitial ? 'initial ' : ''}message`);
-      let chat = await db.chats.get({ uuid });
-      if (!chat) {
-        console.debug("[ChatWrapper] Creating new chat");
-        const chatId = await db.chats.add({
-          uuid,
-          name: "New Chat",
-          timestamp: new Date(),
-          model: selectedModel,
-        });
-        chat = await db.chats.get(chatId);
+      const chat = await db.chats.get({ uuid });
+      if (!chat || !chat.id) {
+        console.error("[ChatWrapper] Chat not found or invalid");
+        return;
       }
 
-      await db.chats.update(chat!.id!, { timestamp: new Date() });
+      // Add user message to the database and state
+      const userMessage: Message = {
+        chatId: chat.id,
+        content: message,
+        role: "user",
+        timestamp: new Date(),
+      };
 
-      if (!isInitial) {
-        const newMessage = {
-          chatId: chat!.id!,
-          content: message,
-          role: "user",
-          timestamp: new Date(),
-        };
-        await db.messages.add(newMessage);
-        console.debug("[ChatWrapper] Added user message to database");
+      const userMessageId = await db.messages.add(userMessage);
+      const updatedMessages = [...messagesRef.current, userMessage];
+      setMessages(updatedMessages);
+      messagesRef.current = updatedMessages;
 
-        const updatedMessages = [...messagesRef.current, newMessage];
-        setMessages(updatedMessages);
-        messagesRef.current = updatedMessages;
-      }
-
-      const stored = localStorage.getItem("customModels");
-      const customModels = stored ? JSON.parse(stored) : [];
-      const modelConfig = customModels.find(
-        (m: any) => m.id === selectedModel
-      );
-
-      console.debug(`[ChatWrapper] Using model: ${modelConfig ? 'Custom' : 'Default'} - ${selectedModel}`);
+      // Initialize model manager and get response
       const modelManager = new ModelManager({
-        provider: modelConfig ? modelConfig.provider : APIType.OpenAI,
-        key: modelConfig
-          ? modelConfig.apiKey
-          : (import.meta.env.VITE_API_KEY as string) || "",
-        ...(modelConfig?.baseUrl && { endpoint: modelConfig.baseUrl }),
+        provider: getAPITypeFromString(selectedModel.provider),
+        key: selectedModel.apiKey,
+        endpoint: selectedModel.baseUrl,
       });
 
-      console.debug("[ChatWrapper] Starting message stream");
-      const stream = await modelManager.stream(
-        messagesRef.current,
-        modelConfig ? modelConfig.modelId : selectedModel,
-        {
-          max_tokens: 16384,
-          temperature: 0.8,
-        }
-      );
-      let responseMessage: Message = {
-        chatId: chat!.id!,
-        content: "",
+      // Get model response
+      const response = await modelManager.generate(updatedMessages, selectedModel.modelId);
+      const modelResponse = response.toString();
+
+      if (!modelResponse) {
+        console.error("[ChatWrapper] No response from model");
+        return;
+      }
+
+      // Add assistant message to database and state
+      const assistantMessage: Message = {
+        chatId: chat.id,
+        content: modelResponse,
         role: "assistant",
         timestamp: new Date(),
       };
 
-      setMessages((prev) => [...prev, responseMessage]);
+      await db.messages.add(assistantMessage);
+      const finalMessages = [...updatedMessages, assistantMessage];
+      setMessages(finalMessages);
+      messagesRef.current = finalMessages;
 
-      console.debug("[ChatWrapper] Processing stream chunks");
-      for await (const chunk of stream) {
-        responseMessage.content += chunk;
-        setMessages([...messagesRef.current, responseMessage]);
-      }
-      messagesRef.current = [...messagesRef.current, responseMessage];
+      // Update chat timestamp
+      await db.chats.update(chat.id, { timestamp: new Date() });
 
-      await db.messages.add(responseMessage);
-      console.debug("[ChatWrapper] Added assistant response to database");
-
-      const chatMessages = await db.messages
-        .where("chatId")
-        .equals(chat!.id!)
-        .toArray();
-
-      if (
-        chatMessages.length === 2 &&
-        chatMessages[0].role === "user" &&
-        chatMessages[1].role === "assistant"
-      ) {
-        console.debug("[ChatWrapper] Generating chat title");
-        await generateChatTitle(chatMessages, chat!.id!);
+      // Generate title for new chats
+      if (isInitial) {
+        await generateChatTitle(finalMessages, chat.id);
       }
 
-      await db.chats.update(chat!.id!, { timestamp: new Date() });
-
-      const allChats = await db.chats.toArray();
-      const sortedChats = allChats.sort(
-        (a, b) =>
-          (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
-      );
-      setChats(sortedChats);
-      console.debug("[ChatWrapper] Updated chat list");
     } catch (error) {
-      console.error("[ChatWrapper] Streaming error:", error);
+      console.error("[ChatWrapper] Error in handleSendMessage:", error);
     }
   };
 
@@ -206,60 +185,61 @@ function ChatWrapper() {
     currentChatContent: Message[],
     chatId: number
   ) => {
-    try {
-      console.debug("[ChatWrapper] Starting title generation");
-      const stored = localStorage.getItem("customModels");
-      const customModels = stored ? JSON.parse(stored) : [];
-      const modelConfig = customModels.find((m: any) => m.id === selectedModel);
+    console.debug("=== GENERATING CHAT TITLE ===");
+    console.debug(`Chat ID: ${chatId}`);
+    if (!selectedModel) return;
 
+    try {
+      if (currentChatContent.length === 0) return;
+
+      // Initialize model manager for title generation
       const modelManager = new ModelManager({
-        provider: modelConfig ? modelConfig.provider : APIType.OpenAI,
-        key: modelConfig
-          ? modelConfig.apiKey
-          : (import.meta.env.VITE_API_KEY as string) || "",
-        ...(modelConfig?.baseUrl && { endpoint: modelConfig.baseUrl }),
+        provider: getAPITypeFromString(selectedModel.provider),
+        key: selectedModel.apiKey,
+        endpoint: selectedModel.baseUrl,
       });
 
-      const titleRequest: Message[] = [
-        ...currentChatContent,
-        {
-          chatId: 0,
-          content:
-            "Provide a title of the chat. No more than 5 words, should be immediately relevant, and be directly descriptive about the content. Output the title only; No quotes or formatting..",
-          role: "user",
-          timestamp: new Date(),
-        },
-      ];
+      // Create a prompt for title generation
+      const titlePrompt = `Based on this conversation, generate a very brief and concise title (max 6 words):
+        ${currentChatContent[0].content.substring(0, 200)}`;
 
-      console.debug("[ChatWrapper] Requesting title from model");
-      const titleStream = await modelManager.stream(
-        titleRequest,
-        modelConfig ? modelConfig.modelId : selectedModel,
-        {
-          max_tokens: 100,
-          temperature: 0.7,
-        }
-      );
+      const titleMessage: Message = {
+        chatId: chatId,
+        content: titlePrompt,
+        role: "user",
+        timestamp: new Date(),
+      };
 
-      let title = "";
-      for await (const chunk of titleStream) {
-        title += chunk;
+      // Get title from model
+      const response = await modelManager.generate([titleMessage], selectedModel.modelId);
+      const title = response.toString();
+      
+      if (!title) {
+        console.error("[ChatWrapper] Failed to generate title");
+        return;
       }
 
-      title = title.trim();
-      if (title.length > 50) {
-        title = title.substring(0, 47) + "...";
+      // Clean and truncate the title
+      const cleanTitle = title
+        .replace(/["']/g, '')
+        .replace(/^Title: /i, '')
+        .replace(/^\d+\. /,'')
+        .trim()
+        .substring(0, 50);
+
+      // Update chat with new title
+      await db.chats.update(chatId, { name: cleanTitle });
+      
+      // Update chats state to reflect the new title
+      const updatedChat = await db.chats.get(chatId);
+      if (updatedChat) {
+        setChats(prevChats => 
+          prevChats.map(chat => 
+            chat.id === chatId ? updatedChat : chat
+          )
+        );
       }
-      console.debug(`[ChatWrapper] Generated title: ${title}`);
 
-      await db.chats.update(chatId, { name: title });
-
-      const allChats = await db.chats.toArray();
-      const sortedChats = allChats.sort(
-        (a, b) => (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
-      );
-      setChats(sortedChats);
-      console.debug("[ChatWrapper] Updated chat list with new title");
     } catch (error) {
       console.error("[ChatWrapper] Error generating chat title:", error);
     }
@@ -271,7 +251,7 @@ function ChatWrapper() {
       <ChatPage
         messages={messages}
         onSendMessage={handleSendMessage}
-        selectedModel={selectedModel}
+        selectedModel={selectedModel?.modelId || ""}
         onModelChange={handleModelChange}
       />
     </div>
@@ -281,36 +261,60 @@ function ChatWrapper() {
 function NewChatWrapper() {
   const navigate = useNavigate();
   const [chats, setChats] = useState<Chat[]>([]);
-  const [selectedModel, setSelectedModel] = useState(() => {
-    const stored = localStorage.getItem("lastUsedModel");
-    return stored || "deepseek-r1-distill-llama-70b";
-  });
+  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
-    const loadChats = async () => {
+    const initialize = async () => {
       const allChats = await db.chats.toArray();
       const sortedChats = allChats.sort(
         (a, b) => (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
       );
       setChats(sortedChats);
+
+      const lastUsedModelId = localStorage.getItem("lastUsedModel");
+      if (lastUsedModelId) {
+        const model = await db.models.where('modelId').equals(lastUsedModelId).first();
+        if (model) {
+          setSelectedModel(model);
+        }
+      }
+
+      // Check if we have any models configured
+      const modelCount = await db.models.count();
+      if (modelCount === 0) {
+        setIsSettingsOpen(true);
+      }
     };
 
-    loadChats();
+    initialize();
   }, []);
 
-  const handleModelChange = (modelId: string) => {
-    setSelectedModel(modelId);
-    localStorage.setItem("lastUsedModel", modelId);
+  const handleModelChange = async (modelId: string) => {
+    const model = await db.models.where('modelId').equals(modelId).first();
+    if (model) {
+      setSelectedModel(model);
+      localStorage.setItem("lastUsedModel", modelId);
+    }
   };
 
   const handleSendMessage = async (message: string) => {
+    if (!selectedModel) {
+      setIsSettingsOpen(true);
+      return;
+    }
+
     const newUuid = uuidv4();
+    console.debug(`=== CREATING NEW CHAT ===`);
+    console.debug(`UUID: ${newUuid}`);
+    console.debug(`Model ID: ${selectedModel.modelId}`);
+    console.debug(`Message: ${message}`);
 
     const chatId = await db.chats.add({
       uuid: newUuid,
       name: "New Chat",
+      modelId: selectedModel.id,
       timestamp: new Date(),
-      model: selectedModel,
     });
 
     const initialMessage: Message = {
@@ -330,8 +334,14 @@ function NewChatWrapper() {
       <Sidebar chats={chats} showGreeting={false} />
       <NewChatPage
         onSendMessage={handleSendMessage}
-        selectedModel={selectedModel}
+        selectedModel={selectedModel?.modelId || ""}
         onModelChange={handleModelChange}
+      />
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        temperature={0.7}
+        onTemperatureChange={() => {}}
       />
     </div>
   );
@@ -341,7 +351,7 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [temperature, setTemperature] = useState(() => {
     const stored = localStorage.getItem("temperature");
-    return stored ? parseFloat(stored) : 0.8;
+    return stored ? parseFloat(stored) : 0.7;
   });
 
   const handleTemperatureChange = (newTemp: number) => {
