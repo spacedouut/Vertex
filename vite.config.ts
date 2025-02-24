@@ -47,5 +47,5 @@ export default defineConfig({
       },
     }),
   ],
-  base: "/Cypher/",
+  base: "/Vertex/",
 })
