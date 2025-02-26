@@ -12,7 +12,7 @@ import "./App.css";
 
 import { NewChatPage } from "./pages/NewChat/NewChat";
 import { ChatPage } from "./pages/Chat/Chat";
-import { ModelManager, APIType } from "./utils/ModelManager";
+import { ModelManager } from "./utils/ModelManager";
 import { db, Message, Chat, Model } from "./utils/Dexie";
 import { Sidebar } from "./components/Sidebar/Sidebar";
 import { SettingsModal } from "./components/SettingsModal/SettingsModal";
@@ -27,78 +27,30 @@ function ChatWrapper() {
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const messagesRef = useRef<Message[]>(messages);
   const initialLoadRef = useRef(true);
+  const initialMessageState = useRef(false);
 
-  useEffect(() => {
-    const loadChats = async () => {
-      console.debug("[ChatWrapper] Loading all chats");
-      const allChats = await db.chats.toArray();
-      const sortedChats = allChats.sort(
-        (a, b) => (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
-      );
-      console.debug(`[ChatWrapper] Loaded ${sortedChats.length} chats`);
-      setChats(sortedChats);
-    };
-
-    const loadChatAndMessages = async () => {
-      if (!uuid) return;
-
-      try {
-        console.debug(`[ChatWrapper] Loading chat with UUID: ${uuid}`);
-        const chat = await db.chats.get({ uuid });
-        if (!chat) {
-          console.error("[ChatWrapper] Chat not found!");
-          return;
-        }
-
-        if (chat.modelId) {
-          const model = await db.models.get(chat.modelId);
-          if (model) {
-            setSelectedModel(model);
-          }
-        }
-
-        const storedMessages = await db.messages
-          .where("chatId")
-          .equals(chat.id!)
-          .sortBy("timestamp");
-
-        console.debug(
-          `[ChatWrapper] Loaded ${storedMessages.length} messages for chat`
-        );
-        setMessages(storedMessages);
-        messagesRef.current = storedMessages;
-
-        if (initialLoadRef.current && location.state?.initialMessages) {
-          initialLoadRef.current = false;
-          if (
-            storedMessages.length === 1 &&
-            storedMessages[0].role === "user"
-          ) {
-            console.debug("[ChatWrapper] Processing initial message");
-            await handleSendMessage(storedMessages[0].content, true);
-          }
-        }
-      } catch (error) {
-        console.error("[ChatWrapper] Error loading chat and messages:", error);
-      }
-    };
-
-    loadChats();
-    loadChatAndMessages();
-  }, [uuid, location.state]);
+  const handleInitialMessage = async () => {
+    if (
+      messagesRef.current.length == 1 &&
+      messagesRef.current[0].role == "user"
+    ) {
+      console.debug("[ChatWrapper] Processing initial message");
+      await handleSendMessage(messagesRef.current[0].content, true);
+    }
+  };
 
   const handleModelChange = async (modelId: string) => {
     if (!uuid) return;
 
     try {
-      const model = await db.models.where('modelId').equals(modelId).first();
+      const model = await db.models.where("modelId").equals(modelId).first();
       if (!model) {
         console.error("[ChatWrapper] Model not found!");
         return;
       }
 
       setSelectedModel(model);
-      
+
       const chat = await db.chats.get({ uuid });
       if (chat) {
         await db.chats.update(chat.id!, { modelId: model.id });
@@ -126,18 +78,21 @@ function ChatWrapper() {
         return;
       }
 
-      // Add user message to the database and state
-      const userMessage: Message = {
-        chatId: chat.id,
-        content: message,
-        role: "user",
-        timestamp: new Date(),
-      };
+      let updatedMessages = messagesRef.current;
+      if (!isInitial) {
+        // Add user message to the database and state
+        const userMessage: Message = {
+          chatId: chat.id,
+          content: message,
+          role: "user",
+          timestamp: new Date(),
+        };
 
-      const userMessageId = await db.messages.add(userMessage);
-      const updatedMessages = [...messagesRef.current, userMessage];
-      setMessages(updatedMessages);
-      messagesRef.current = updatedMessages;
+        const userMessageId = await db.messages.add(userMessage);
+        let updatedMessages = [...messagesRef.current, userMessage];
+        setMessages(updatedMessages);
+        messagesRef.current = updatedMessages;
+      }
 
       // Initialize model manager and get response
       const modelManager = new ModelManager({
@@ -147,15 +102,8 @@ function ChatWrapper() {
       });
 
       // Get model response
-      const response = await modelManager.generate(updatedMessages, selectedModel.modelId);
-      const modelResponse = response.toString();
-
-      if (!modelResponse) {
-        console.error("[ChatWrapper] No response from model");
-        return;
-      }
-
-      // Add assistant message to database and state
+      // Initialize an empty assistant message and add it to the state
+      let modelResponse = "";
       const assistantMessage: Message = {
         chatId: chat.id,
         content: modelResponse,
@@ -163,19 +111,46 @@ function ChatWrapper() {
         timestamp: new Date(),
       };
 
-      await db.messages.add(assistantMessage);
-      const finalMessages = [...updatedMessages, assistantMessage];
-      setMessages(finalMessages);
-      messagesRef.current = finalMessages;
+      const assistantMessageId = await db.messages.add(assistantMessage);
+      const initialMessages = [...updatedMessages, assistantMessage];
+      setMessages(initialMessages);
+      messagesRef.current = initialMessages;
+
+      // Stream the response and update the message content in real-time
+      const responseStream = await modelManager.stream(
+        updatedMessages,
+        selectedModel.modelId
+      );
+
+      for await (const chunk of responseStream) {
+        modelResponse += chunk;
+        // Update the assistant message content in the state
+        const updatedAssistantMessage = {
+          ...assistantMessage,
+          content: modelResponse,
+        };
+        const currentMessages = [...updatedMessages, updatedAssistantMessage];
+        setMessages(currentMessages);
+        messagesRef.current = currentMessages;
+
+        // Update the assistant message content in the database
+        await db.messages.update(assistantMessageId, {
+          content: modelResponse,
+        });
+      }
+
+      if (!modelResponse) {
+        console.error("[ChatWrapper] No response from model");
+        return;
+      }
 
       // Update chat timestamp
       await db.chats.update(chat.id, { timestamp: new Date() });
 
       // Generate title for new chats
       if (isInitial) {
-        await generateChatTitle(finalMessages, chat.id);
+        await generateChatTitle(messagesRef.current, chat.id);
       }
-
     } catch (error) {
       console.error("[ChatWrapper] Error in handleSendMessage:", error);
     }
@@ -211,9 +186,12 @@ function ChatWrapper() {
       };
 
       // Get title from model
-      const response = await modelManager.generate([titleMessage], selectedModel.modelId);
+      const response = await modelManager.generate(
+        [titleMessage],
+        selectedModel.modelId
+      );
       const title = response.toString();
-      
+
       if (!title) {
         console.error("[ChatWrapper] Failed to generate title");
         return;
@@ -221,29 +199,73 @@ function ChatWrapper() {
 
       // Clean and truncate the title
       const cleanTitle = title
-        .replace(/["']/g, '')
-        .replace(/^Title: /i, '')
-        .replace(/^\d+\. /,'')
+        .replace(/["']/g, "")
+        .replace(/^Title: /i, "")
+        .replace(/^\d+\. /, "")
         .trim()
         .substring(0, 50);
 
       // Update chat with new title
       await db.chats.update(chatId, { name: cleanTitle });
-      
+
       // Update chats state to reflect the new title
       const updatedChat = await db.chats.get(chatId);
       if (updatedChat) {
-        setChats(prevChats => 
-          prevChats.map(chat => 
-            chat.id === chatId ? updatedChat : chat
-          )
+        setChats((prevChats) =>
+          prevChats.map((chat) => (chat.id === chatId ? updatedChat : chat))
         );
       }
-
     } catch (error) {
       console.error("[ChatWrapper] Error generating chat title:", error);
     }
   };
+  const loadChats = async () => {
+    console.debug("[ChatWrapper] Loading all chats");
+    const allChats = await db.chats.toArray();
+    const sortedChats = allChats.sort(
+      (a, b) => (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
+    );
+    console.debug(`[ChatWrapper] Loaded ${sortedChats.length} chats`);
+    setChats(sortedChats);
+  };
+
+  const loadChatAndMessages = async () => {
+    if (!uuid) return;
+
+    try {
+      console.debug(`[ChatWrapper] Loading chat with UUID: ${uuid}`);
+      const chat = await db.chats.get({ uuid });
+      if (!chat) {
+        console.error("[ChatWrapper] Chat not found!");
+        return;
+      }
+
+      if (chat.modelId) {
+        const model = await db.models.get(chat.modelId);
+        if (model) {
+          setSelectedModel(model);
+        }
+      }
+
+      const storedMessages = await db.messages
+        .where("chatId")
+        .equals(chat.id!)
+        .sortBy("timestamp");
+
+      console.debug(
+        `[ChatWrapper] Loaded ${storedMessages.length} messages for chat`
+      );
+      setMessages(storedMessages);
+      messagesRef.current = storedMessages;
+      handleInitialMessage();
+    } catch (error) {
+      console.error("[ChatWrapper] Error loading chat and messages:", error);
+    }
+  };
+  useEffect(() => {
+    loadChats();
+    loadChatAndMessages();
+  }, []);
 
   return (
     <div className="chat-wrapper">
@@ -264,34 +286,34 @@ function NewChatWrapper() {
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  const loadModels = async () => {
+    const lastUsedModelId = localStorage.getItem("lastUsedModel");
+    if (lastUsedModelId) {
+      const model = await db.models
+        .where("modelId")
+        .equals(lastUsedModelId)
+        .first();
+      if (model) {
+        setSelectedModel(model);
+      }
+    }
+  };
+
+  const loadChats = async () => {
+    const allChats = await db.chats.toArray();
+    const sortedChats = allChats.sort(
+      (a, b) => (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
+    );
+    setChats(sortedChats);
+  };
+
   useEffect(() => {
-    const initialize = async () => {
-      const allChats = await db.chats.toArray();
-      const sortedChats = allChats.sort(
-        (a, b) => (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
-      );
-      setChats(sortedChats);
-
-      const lastUsedModelId = localStorage.getItem("lastUsedModel");
-      if (lastUsedModelId) {
-        const model = await db.models.where('modelId').equals(lastUsedModelId).first();
-        if (model) {
-          setSelectedModel(model);
-        }
-      }
-
-      // Check if we have any models configured
-      const modelCount = await db.models.count();
-      if (modelCount === 0) {
-        setIsSettingsOpen(true);
-      }
-    };
-
-    initialize();
+    loadModels();
+    loadChats();
   }, []);
 
   const handleModelChange = async (modelId: string) => {
-    const model = await db.models.where('modelId').equals(modelId).first();
+    const model = await db.models.where("modelId").equals(modelId).first();
     if (model) {
       setSelectedModel(model);
       localStorage.setItem("lastUsedModel", modelId);
@@ -301,6 +323,9 @@ function NewChatWrapper() {
   const handleSendMessage = async (message: string) => {
     if (!selectedModel) {
       setIsSettingsOpen(true);
+      alert(
+        "You don't have any models configured! Configure a model here in settings, reload the page, then try again."
+      );
       return;
     }
 
@@ -314,14 +339,14 @@ function NewChatWrapper() {
       uuid: newUuid,
       name: "New Chat",
       modelId: selectedModel.id,
-      timestamp: new Date(),
+      timestamp: new Date(Date.now()),
     });
 
     const initialMessage: Message = {
       chatId,
       content: message,
       role: "user",
-      timestamp: new Date(),
+      timestamp: new Date(Date.now()),
     };
 
     await db.messages.add(initialMessage);

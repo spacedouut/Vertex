@@ -26,7 +26,7 @@ interface APIInfo {
 }
 
 export class ModelManager {
-  public apiInfo: APIInfo;
+  public apiInfo: APIInfo;   
   constructor(
     apiInfo: APIInfo = {
       provider: APIType.OpenAI,
