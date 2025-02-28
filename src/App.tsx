@@ -26,6 +26,7 @@ function ChatWrapper() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const messagesRef = useRef<Message[]>(messages);
+<<<<<<< HEAD
   const initialLoadRef = useRef(true);
   const initialMessageState = useRef(false);
 
@@ -38,6 +39,67 @@ function ChatWrapper() {
       await handleSendMessage(messagesRef.current[0].content, true);
     }
   };
+=======
+
+  // runs when messages are loaded
+  const handleInitialMessage = async () => {
+    if (messagesRef.current.length === 1 && messagesRef.current[0].role === "user") {
+      console.debug("[ChatWrapper] Processing initial message");
+      await handleSendMessage(messagesRef.current[0].content, true);
+    }
+  };
+
+  useEffect(() => {
+    const loadChats = async () => {
+      console.debug("[ChatWrapper] Loading all chats");
+      const allChats = await db.chats.toArray();
+      const sortedChats = allChats.sort(
+        (a, b) => (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
+      );
+      console.debug(`[ChatWrapper] Loaded ${sortedChats.length} chats`);
+      setChats(sortedChats);
+    };
+
+    const loadChatAndMessages = async () => {
+      if (!uuid) return;
+
+      try {
+        console.debug(`[ChatWrapper] Loading chat with UUID: ${uuid}`);
+        const chat = await db.chats.get({ uuid });
+        if (!chat) {
+          console.error("[ChatWrapper] Chat not found!");
+          return;
+        }
+
+        if (chat.modelId) {
+          const model = await db.models.get(chat.modelId);
+          if (model) {
+            setSelectedModel(model);
+          }
+        }
+
+        const storedMessages = await db.messages
+          .where("chatId")
+          .equals(chat.id!)
+          .sortBy("timestamp");
+
+        console.debug(
+          `[ChatWrapper] Loaded ${storedMessages.length} messages for chat`
+        );
+        setMessages(storedMessages);
+        messagesRef.current = storedMessages;
+        
+        // Always check for initial message when messages are loaded
+        await handleInitialMessage();
+      } catch (error) {
+        console.error("[ChatWrapper] Error loading chat and messages:", error);
+      }
+    };
+
+    loadChats();
+    loadChatAndMessages();
+  }, [uuid, location.state]);
+>>>>>>> c9e4072595be51611fa148d063bc4694eddb366c
 
   const handleModelChange = async (modelId: string) => {
     if (!uuid) return;
