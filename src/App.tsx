@@ -26,7 +26,14 @@ function ChatWrapper() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const messagesRef = useRef<Message[]>(messages);
-  const initialLoadRef = useRef(true);
+
+  // runs when messages are loaded
+  const handleInitialMessage = async () => {
+    if (messagesRef.current.length === 1 && messagesRef.current[0].role === "user") {
+      console.debug("[ChatWrapper] Processing initial message");
+      await handleSendMessage(messagesRef.current[0].content, true);
+    }
+  };
 
   useEffect(() => {
     const loadChats = async () => {
@@ -67,17 +74,9 @@ function ChatWrapper() {
         );
         setMessages(storedMessages);
         messagesRef.current = storedMessages;
-
-        if (initialLoadRef.current && location.state?.initialMessages) {
-          initialLoadRef.current = false;
-          if (
-            storedMessages.length === 1 &&
-            storedMessages[0].role === "user"
-          ) {
-            console.debug("[ChatWrapper] Processing initial message");
-            await handleSendMessage(storedMessages[0].content, true);
-          }
-        }
+        
+        // Always check for initial message when messages are loaded
+        await handleInitialMessage();
       } catch (error) {
         console.error("[ChatWrapper] Error loading chat and messages:", error);
       }
